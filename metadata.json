@@ -1,0 +1,7 @@
+{
+  "name": "AulaGrade - Plataforma Académica y Gestión de Grupos",
+  "description": "Sistema integral para docentes: alta y gestión de grupos, cuaderno de notas ponderado, pase de lista y configuración de criterios de evaluación.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

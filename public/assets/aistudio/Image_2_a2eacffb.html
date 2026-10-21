@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+
+<html lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-tertiary": "#ffffff", "primary-fixed": "#dce1ff", "on-secondary-fixed-variant": "#003ea8", "on-primary": "#ffffff", "on-primary-container": "#90a8ff", "error": "#ba1a1a", "secondary": "#0051d5", "on-primary-fixed": "#00164e", "tertiary-fixed-dim": "#d0bcff", "on-background": "#0b1c30", "on-tertiary-container": "#b89cff", "surface-dim": "#cbdbf5", "surface-bright": "#f8f9ff", "on-secondary": "#ffffff", "surface-tint": "#4059aa", "primary-container": "#1e3a8a", "primary-fixed-dim": "#b6c4ff", "inverse-on-surface": "#eaf1ff", "secondary-fixed-dim": "#b4c5ff", "primary": "#00236f", "surface-variant": "#d3e4fe", "surface-container-low": "#eff4ff", "on-surface-variant": "#444651", "surface": "#f8f9ff", "on-primary-fixed-variant": "#264191", "background": "#f8f9ff", "outline": "#757682", "secondary-fixed": "#dbe1ff", "surface-container-lowest": "#ffffff", "inverse-surface": "#213145", "on-error": "#ffffff", "error-container": "#ffdad6", "surface-container": "#e5eeff", "on-secondary-fixed": "#00174b", "secondary-container": "#316bf3", "outline-variant": "#c5c5d3", "tertiary-fixed": "#e9ddff", "on-secondary-container": "#fefcff", "tertiary-container": "#4e03b8", "inverse-primary": "#b6c4ff", "surface-container-high": "#dce9ff", "on-error-container": "#93000a", "tertiary": "#340081", "surface-container-highest": "#d3e4fe", "on-surface": "#0b1c30", "on-tertiary-fixed-variant": "#5516be", "on-tertiary-fixed": "#23005c" }, "borderRadius": { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" }, "spacing": { "space-xs": "0.25rem", "space-md": "0.75rem", "space-xl": "1.75rem", "margin-desktop": "2rem", "space-lg": "1.25rem", "gutter-desktop": "1.5rem", "gutter": "1rem", "space-2xl": "2.5rem", "space-sm": "0.5rem", "margin": "1rem", "margin-tablet": "1.5rem" }, "fontFamily": { "title-sm": ["Inter"], "title-md": ["Inter"], "body-sm": ["Inter"], "body-md": ["Inter"], "headline-lg-mobile": ["Inter"], "headline-xl-mobile": ["Inter"], "label-md": ["Inter"], "body-lg": ["Inter"], "headline-md": ["Inter"], "label-sm": ["Inter"], "headline-lg": ["Inter"], "headline-xl": ["Inter"], "mono-numeric": ["Inter"] }, "fontSize": { "title-sm": ["14px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "title-md": ["16px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "body-sm": ["13px", { "lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400" }], "body-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400" }], "headline-lg-mobile": ["22px", { "lineHeight": "30px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "headline-xl-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500" }], "body-lg": ["16px", { "lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "400" }], "headline-md": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.02em", "fontWeight": "600" }], "headline-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }], "headline-xl": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.025em", "fontWeight": "700" }], "mono-numeric": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500" }] } } } };</script></head><body class="bg-surface font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-64 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between"><div class="flex flex-col"><div class="h-16 px-space-md flex items-center justify-between bg-surface-container-lowest"><div class="flex items-center gap-space-sm"><img alt="AulaGrade Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBrDJzot0Zq1QzBsl3LvbdrD1P09b6q7vCqucMfQ3jEC-GSeneZrgp8YuVo0Ydi5tcWF3kyBvLoehp83-YOPP8jeg4KLDoGnaClRyhVuYVmXkdsW3Qn4CtQRXEuRh3uoYsy1AJfn-OewCxxxAUf82YvzbySNbV9UgxcuTHcZeZaOQmkDPy8cCNJTiMXP3id_qe-eR5SxCkIXWRMsHMlek7cyMd9YLUY2-quAYlPdM8TQcL57zvAhPw9fQ"/><span class="font-title-md text-title-md text-primary font-bold tracking-tight">AulaGrade</span></div></div><div class="px-space-md py-space-sm"><div class="bg-surface-container-low rounded-lg p-space-sm flex flex-col gap-space-xs"><span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Periodo Activo</span><div class="flex items-center justify-between"><span class="font-body-sm text-body-sm text-on-surface font-semibold truncate">Ciclo 2024-2025 • P2</span><span class="material-symbols-outlined text-on-surface-variant text-base cursor-pointer">arrow_drop_down</span></div></div></div><nav class="flex flex-col gap-space-xs px-space-md mt-space-sm" data-active-classes="bg-primary-container text-on-primary font-semibold shadow-sm"><a aria-current="page" class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg transition-colors bg-primary-container text-on-primary font-semibold shadow-sm" data-path="dashboard-de-grupos" href="#"><span class="material-symbols-outlined text-lg">dashboard</span><span>Dashboard de Grupos</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-body-md text-body-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="cuaderno-de-calificaciones" href="#"><span class="material-symbols-outlined text-lg">edit_note</span><span>Cuaderno de Notas</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-body-md text-body-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="pase-de-lista-y-asistencia" href="#"><span class="material-symbols-outlined text-lg">how_to_reg</span><span>Pase de Lista</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-body-md text-body-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="criterios-de-evaluacion" href="#"><span class="material-symbols-outlined text-lg">rule</span><span>Criterios de Evaluación</span></a></nav></div><div class="p-space-md bg-surface-container-lowest"><div class="bg-surface-container-low rounded-lg p-space-sm flex items-center justify-between"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-secondary text-base">school</span><div class="flex flex-col"><span class="font-label-sm text-label-sm text-on-surface-variant">Sede Central</span><span class="font-body-sm text-body-sm text-on-surface font-semibold">Campus Norte</span></div></div><span class="material-symbols-outlined text-on-surface-variant text-base">verified</span></div></div></aside><div class="pl-64 flex flex-col min-h-screen"><header class="fixed top-0 left-64 right-0 h-16 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-space-lg"><div class="w-96"><div class="relative flex items-center w-full"><span class="material-symbols-outlined absolute left-3 text-outline text-lg pointer-events-none">search</span><input class="w-full h-10 pl-10 pr-space-md bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-secondary shadow-sm" placeholder="Buscar alumno, matrícula o grupo... (⌘K)" type="text"/></div></div><div class="flex items-center gap-space-md"><button class="relative p-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" title="Notificaciones de tareas y entregas" type="button"><span class="material-symbols-outlined text-xl">notifications</span><span class="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full"></span></button><button class="flex items-center gap-space-xs px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-sm text-body-sm" title="Centro de Ayuda" type="button"><span class="material-symbols-outlined text-lg">help_outline</span><span class="hidden xl:inline">Ayuda</span></button><div class="h-6 w-px bg-outline-variant mx-space-xs"></div><div class="flex items-center gap-space-sm pl-space-xs"><div class="flex flex-col text-right"><span class="font-title-sm text-title-sm text-on-surface font-semibold leading-tight">Prof. Carlos Mendoza</span><span class="font-label-sm text-label-sm text-on-surface-variant leading-none">Docente Titular</span></div><img alt="Profile" class="w-8 h-8 rounded-full object-cover ring-1 ring-outline-variant" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCA9XgciCHMAqtXZ1RNKG3bbZ91L1NHuLFe6O4y-U9wNHwon8rCRaUC2I3K8ZCW90e7uN02bnb0hhoz8au5kp09WzbW4vvgsP7IisEGNyvXPn2p3g3bTOrMtQdBQsrFKb5HsOoNptRS9Qr58HRkdxSCv0cSC50QJDFQG04wQXvsWbJ3JeZVcuGGZYVXkFZLSrja8KG4dIJNafb1DPoJT3MPLPXiq8I4ZRACmrodTskuLUf6oTeaQRKRFQ"/></div></div></header><main class="w-full pt-16 bg-surface flex-1"><div class="flex flex-col w-full pb-16">
+<!-- Top Context Header & Actions -->
+<header class="px-space-lg pt-space-lg pb-space-md flex flex-col md:flex-row md:items-center justify-between gap-space-md">
+<div class="flex flex-col gap-space-xs">
+<nav class="flex items-center gap-space-xs text-on-surface-variant font-label-md text-label-md">
+<a class="hover:text-primary transition-colors flex items-center gap-1" href="#">
+<span class="material-symbols-outlined text-sm">dashboard</span>
+<span>Dashboard de Grupos</span>
+</a>
+<span class="material-symbols-outlined text-xs">chevron_right</span>
+<span class="text-on-surface font-semibold">Alta de Nuevo Grupo</span>
+</nav>
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Dar de Alta Nuevo Grupo</h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl">
+        Configura la información académica, asigna horarios, define el esquema inicial de evaluación e importa la lista de estudiantes para este ciclo.
+      </p>
+</div>
+<!-- Global Form Actions -->
+<div class="flex items-center gap-space-sm self-start md:self-auto shrink-0">
+<button class="px-space-md py-space-sm rounded-lg bg-surface-container-high text-on-surface font-title-sm text-title-sm hover:bg-surface-variant transition-colors flex items-center gap-space-xs shadow-sm" type="button">
+<span class="material-symbols-outlined text-lg">close</span>
+<span>Cancelar</span>
+</button>
+<button class="px-space-md py-space-sm rounded-lg bg-surface-container-lowest text-on-surface font-title-sm text-title-sm hover:bg-surface-container-low transition-colors flex items-center gap-space-xs shadow-sm" type="button">
+<span class="material-symbols-outlined text-lg">save</span>
+<span>Guardar Borrador</span>
+</button>
+<button class="px-space-lg py-space-sm rounded-lg bg-primary text-on-primary font-title-sm text-title-sm hover:bg-primary-container transition-all flex items-center gap-space-xs shadow-md shadow-primary/20 hover:shadow-lg" type="button">
+<span class="material-symbols-outlined text-lg">check_circle</span>
+<span>Crear y Activar Grupo</span>
+</button>
+</div>
+</header>
+<!-- Step Progress Indicator Bar -->
+<div class="px-space-lg mb-space-lg">
+<div class="bg-surface-container-lowest rounded-xl p-space-sm shadow-sm flex items-center justify-between gap-space-sm overflow-x-auto">
+<div class="flex items-center gap-space-sm min-w-max px-space-sm py-1 rounded-lg bg-surface-container-high text-primary font-title-sm text-title-sm">
+<span class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center font-mono-numeric text-mono-numeric text-xs font-bold">1</span>
+<span>Información Académica</span>
+</div>
+<div class="h-0.5 w-8 bg-surface-container-highest shrink-0"></div>
+<div class="flex items-center gap-space-sm min-w-max px-space-sm py-1 rounded-lg text-on-surface-variant font-title-sm text-title-sm">
+<span class="w-6 h-6 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center font-mono-numeric text-mono-numeric text-xs font-bold">2</span>
+<span>Horarios y Sesiones</span>
+</div>
+<div class="h-0.5 w-8 bg-surface-container-highest shrink-0"></div>
+<div class="flex items-center gap-space-sm min-w-max px-space-sm py-1 rounded-lg text-on-surface-variant font-title-sm text-title-sm">
+<span class="w-6 h-6 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center font-mono-numeric text-mono-numeric text-xs font-bold">3</span>
+<span>Criterios y Ponderaciones</span>
+</div>
+<div class="h-0.5 w-8 bg-surface-container-highest shrink-0"></div>
+<div class="flex items-center gap-space-sm min-w-max px-space-sm py-1 rounded-lg text-on-surface-variant font-title-sm text-title-sm">
+<span class="w-6 h-6 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center font-mono-numeric text-mono-numeric text-xs font-bold">4</span>
+<span>Matriculación de Alumnos</span>
+</div>
+</div>
+</div>
+<!-- Primary Canvas Split: 8 cols Form Engine / 4 cols Live Preview Sheet -->
+<div class="px-space-lg grid grid-cols-1 xl:grid-cols-12 gap-space-lg items-start">
+<!-- LEFT: Multi-block configuration stream (8 Cols) -->
+<div class="xl:col-span-8 flex flex-col gap-space-lg min-w-0">
+<!-- BLOQUE 1: Información Académica Básica -->
+<section class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-md relative overflow-hidden">
+<div class="flex items-center justify-between pb-space-sm bg-gradient-to-r from-transparent to-surface-container-low/50 -mx-space-lg px-space-lg">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-xl">school</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Etapa 1</span>
+<h2 class="font-title-md text-title-md text-on-surface font-semibold">Información Académica Básica</h2>
+</div>
+</div>
+<span class="px-space-sm py-0.5 rounded-full bg-surface-container text-primary font-mono-numeric text-mono-numeric text-xs font-semibold">Obligatorio</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md pt-space-xs">
+<!-- Nombre de Asignatura -->
+<div class="md:col-span-2 flex flex-col gap-1.5">
+<label class="font-title-sm text-title-sm text-on-surface flex items-center justify-between">
+<span>Nombre de la Asignatura / Materia <span class="text-error">*</span></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Oficial</span>
+</label>
+<input class="w-full h-10 px-space-md bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-secondary shadow-sm" id="input-subject-name" placeholder="Ej. Álgebra Lineal, Química Orgánica..." type="text" value="Física Cuántica I"/>
+</div>
+<!-- Código o Clave -->
+<div class="flex flex-col gap-1.5">
+<label class="font-title-sm text-title-sm text-on-surface">Código o Clave <span class="text-error">*</span></label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-outline text-lg pointer-events-none">tag</span>
+<input class="w-full h-10 pl-9 pr-space-md bg-surface-container-lowest rounded-lg font-mono-numeric text-mono-numeric text-on-surface uppercase placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-secondary shadow-sm" id="input-subject-code" placeholder="Ej. MAT-301" type="text" value="FIS-302"/>
+</div>
+</div>
+<!-- Nivel Educativo -->
+<div class="flex flex-col gap-1.5">
+<label class="font-title-sm text-title-sm text-on-surface">Nivel Educativo</label>
+<select class="w-full h-10 px-space-md bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface focus:outline-none focus:ring-1 focus:ring-secondary shadow-sm appearance-none cursor-pointer">
+<option selected="">Licenciatura / Universidad</option>
+<option>Bachillerato / Preparatoria</option>
+<option>Secundaria</option>
+<option>Posgrado / Maestría</option>
+</select>
+</div>
+<!-- Grado / Semestre -->
+<div class="flex flex-col gap-1.5">
+<label class="font-title-sm text-title-sm text-on-surface">Grado / Semestre</label>
+<select class="w-full h-10 px-space-md bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface focus:outline-none focus:ring-1 focus:ring-secondary shadow-sm appearance-none cursor-pointer">
+<option>1er Semestre</option>
+<option>2do Semestre</option>
+<option selected="">3er Semestre</option>
+<option>4to Semestre</option>
+<option>5to Semestre</option>
+<option>6to Semestre</option>
+</select>
+</div>
+<!-- Sección / Grupo -->
+<div class="flex flex-col gap-1.5">
+<label class="font-title-sm text-title-sm text-on-surface">Grupo / Sección</label>
+<div class="flex items-center gap-space-xs">
+<label class="flex-1 cursor-pointer">
+<input checked="" class="peer sr-only" name="section" type="radio"/>
+<div class="h-10 rounded-lg bg-surface-container-low peer-checked:bg-primary-container peer-checked:text-on-primary font-title-sm text-title-sm flex items-center justify-center transition-colors">
+                  Grupo A
+                </div>
+</label>
+<label class="flex-1 cursor-pointer">
+<input class="peer sr-only" name="section" type="radio"/>
+<div class="h-10 rounded-lg bg-surface-container-low peer-checked:bg-primary-container peer-checked:text-on-primary font-title-sm text-title-sm flex items-center justify-center transition-colors">
+                  Grupo B
+                </div>
+</label>
+<label class="flex-1 cursor-pointer">
+<input class="peer sr-only" name="section" type="radio"/>
+<div class="h-10 rounded-lg bg-surface-container-low peer-checked:bg-primary-container peer-checked:text-on-primary font-title-sm text-title-sm flex items-center justify-center transition-colors">
+                  Grupo C
+                </div>
+</label>
+</div>
+</div>
+<!-- Turno -->
+<div class="flex flex-col gap-1.5">
+<label class="font-title-sm text-title-sm text-on-surface">Turno</label>
+<div class="grid grid-cols-3 gap-space-xs">
+<label class="cursor-pointer">
+<input checked="" class="peer sr-only" name="shift" type="radio"/>
+<div class="h-10 rounded-lg bg-surface-container-low peer-checked:bg-secondary-container peer-checked:text-on-secondary-container font-label-md text-label-md flex items-center justify-center transition-colors font-medium">
+                  Matutino
+                </div>
+</label>
+<label class="cursor-pointer">
+<input class="peer sr-only" name="shift" type="radio"/>
+<div class="h-10 rounded-lg bg-surface-container-low peer-checked:bg-secondary-container peer-checked:text-on-secondary-container font-label-md text-label-md flex items-center justify-center transition-colors font-medium">
+                  Vespertino
+                </div>
+</label>
+<label class="cursor-pointer">
+<input class="peer sr-only" name="shift" type="radio"/>
+<div class="h-10 rounded-lg bg-surface-container-low peer-checked:bg-secondary-container peer-checked:text-on-secondary-container font-label-md text-label-md flex items-center justify-center transition-colors font-medium">
+                  Mixto
+                </div>
+</label>
+</div>
+</div>
+<!-- Ciclo Escolar Activo -->
+<div class="flex flex-col gap-1.5">
+<label class="font-title-sm text-title-sm text-on-surface">Ciclo Escolar y Periodo</label>
+<div class="h-10 px-space-md bg-surface-container-low rounded-lg flex items-center justify-between text-on-surface font-body-sm text-body-sm">
+<span class="font-semibold">Ciclo 2024-2025 • P2</span>
+<span class="material-symbols-outlined text-outline text-base">lock</span>
+</div>
+</div>
+<!-- Aula Física / Laboratorio -->
+<div class="flex flex-col gap-1.5">
+<label class="font-title-sm text-title-sm text-on-surface">Aula / Laboratorio</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-outline text-lg pointer-events-none">meeting_room</span>
+<input class="w-full h-10 pl-9 pr-space-md bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-secondary shadow-sm" placeholder="Ej. Lab de Cómputo 3" type="text" value="Edificio B - Aula 204"/>
+</div>
+</div>
+<!-- Cupo Máximo -->
+<div class="flex flex-col gap-1.5">
+<label class="font-title-sm text-title-sm text-on-surface">Cupo Máximo</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-outline text-lg pointer-events-none">group</span>
+<input class="w-full h-10 pl-9 pr-space-md bg-surface-container-lowest rounded-lg font-mono-numeric text-mono-numeric text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-secondary shadow-sm" max="60" min="5" type="number" value="35"/>
+</div>
+</div>
+</div>
+</section>
+<!-- BLOQUE 2: Horarios de Clase y Sesiones Semanales -->
+<section class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-md">
+<div class="flex items-center justify-between pb-space-sm bg-gradient-to-r from-transparent to-surface-container-low/50 -mx-space-lg px-space-lg">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-xl">schedule</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Etapa 2</span>
+<h2 class="font-title-md text-title-md text-on-surface font-semibold">Horarios de Clase y Sesiones Semanales</h2>
+</div>
+</div>
+<span class="px-space-sm py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-mono-numeric text-mono-numeric text-xs font-semibold">3 Sesiones Semanales</span>
+</div>
+<!-- Interactive Weekdays Selector -->
+<div class="flex flex-col gap-space-xs">
+<span class="font-label-md text-label-md text-on-surface-variant">Días hábiles de impartición:</span>
+<div class="grid grid-cols-5 gap-space-xs">
+<!-- Lunes (Activo) -->
+<button class="py-space-sm rounded-lg bg-primary-container text-on-primary flex flex-col items-center gap-1 shadow-sm transition-transform active:scale-95" type="button">
+<span class="font-title-sm text-title-sm font-bold">LUN</span>
+<span class="font-label-sm text-label-sm text-on-primary-container">07:00 - 08:40</span>
+</button>
+<!-- Martes (Inactivo) -->
+<button class="py-space-sm rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant flex flex-col items-center gap-1 transition-colors" type="button">
+<span class="font-title-sm text-title-sm">MAR</span>
+<span class="font-label-sm text-label-sm text-outline">Sin sesión</span>
+</button>
+<!-- Miércoles (Activo) -->
+<button class="py-space-sm rounded-lg bg-primary-container text-on-primary flex flex-col items-center gap-1 shadow-sm transition-transform active:scale-95" type="button">
+<span class="font-title-sm text-title-sm font-bold">MIÉ</span>
+<span class="font-label-sm text-label-sm text-on-primary-container">07:00 - 08:40</span>
+</button>
+<!-- Jueves (Inactivo) -->
+<button class="py-space-sm rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant flex flex-col items-center gap-1 transition-colors" type="button">
+<span class="font-title-sm text-title-sm">JUE</span>
+<span class="font-label-sm text-label-sm text-outline">Sin sesión</span>
+</button>
+<!-- Viernes (Activo) -->
+<button class="py-space-sm rounded-lg bg-primary-container text-on-primary flex flex-col items-center gap-1 shadow-sm transition-transform active:scale-95" type="button">
+<span class="font-title-sm text-title-sm font-bold">VIE</span>
+<span class="font-label-sm text-label-sm text-on-primary-container">08:50 - 09:40</span>
+</button>
+</div>
+</div>
+<!-- Detailed Time Rows -->
+<div class="flex flex-col gap-space-sm bg-surface-container-low/70 p-space-md rounded-xl">
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider px-space-xs">
+<span>Día</span>
+<span>Hora Inicio</span>
+<span>Hora Término</span>
+<span>Tipo de Sesión</span>
+<span>Acción</span>
+</div>
+<!-- Row 1 -->
+<div class="bg-surface-container-lowest p-space-xs rounded-lg flex items-center justify-between gap-space-sm shadow-sm">
+<div class="w-24 pl-space-xs flex items-center gap-1 font-title-sm text-title-sm text-on-surface font-semibold">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span>Lunes</span>
+</div>
+<input class="h-8 px-space-xs bg-surface-container-low rounded font-mono-numeric text-mono-numeric text-on-surface text-center focus:outline-none" type="time" value="07:00"/>
+<input class="h-8 px-space-xs bg-surface-container-low rounded font-mono-numeric text-mono-numeric text-on-surface text-center focus:outline-none" type="time" value="08:40"/>
+<span class="px-space-sm py-0.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm">Teoría (100 min)</span>
+<button class="p-1 rounded text-outline hover:text-error transition-colors" title="Eliminar sesión" type="button">
+<span class="material-symbols-outlined text-base">delete</span>
+</button>
+</div>
+<!-- Row 2 -->
+<div class="bg-surface-container-lowest p-space-xs rounded-lg flex items-center justify-between gap-space-sm shadow-sm">
+<div class="w-24 pl-space-xs flex items-center gap-1 font-title-sm text-title-sm text-on-surface font-semibold">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span>Miércoles</span>
+</div>
+<input class="h-8 px-space-xs bg-surface-container-low rounded font-mono-numeric text-mono-numeric text-on-surface text-center focus:outline-none" type="time" value="07:00"/>
+<input class="h-8 px-space-xs bg-surface-container-low rounded font-mono-numeric text-mono-numeric text-on-surface text-center focus:outline-none" type="time" value="08:40"/>
+<span class="px-space-sm py-0.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm">Laboratorio (100 min)</span>
+<button class="p-1 rounded text-outline hover:text-error transition-colors" title="Eliminar sesión" type="button">
+<span class="material-symbols-outlined text-base">delete</span>
+</button>
+</div>
+<!-- Row 3 -->
+<div class="bg-surface-container-lowest p-space-xs rounded-lg flex items-center justify-between gap-space-sm shadow-sm">
+<div class="w-24 pl-space-xs flex items-center gap-1 font-title-sm text-title-sm text-on-surface font-semibold">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span>Viernes</span>
+</div>
+<input class="h-8 px-space-xs bg-surface-container-low rounded font-mono-numeric text-mono-numeric text-on-surface text-center focus:outline-none" type="time" value="08:50"/>
+<input class="h-8 px-space-xs bg-surface-container-low rounded font-mono-numeric text-mono-numeric text-on-surface text-center focus:outline-none" type="time" value="09:40"/>
+<span class="px-space-sm py-0.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm">Taller / Resolución (50 min)</span>
+<button class="p-1 rounded text-outline hover:text-error transition-colors" title="Eliminar sesión" type="button">
+<span class="material-symbols-outlined text-base">delete</span>
+</button>
+</div>
+</div>
+<!-- Tolerancia y Sincronización Calendario -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md pt-space-xs">
+<div class="flex items-center justify-between p-space-md bg-surface-container-low rounded-lg">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-secondary">sync</span>
+<div class="flex flex-col">
+<span class="font-title-sm text-title-sm text-on-surface font-semibold">Sincronizar calendario escolar</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Omite días festivos e inhábiles automáticamente</span>
+</div>
+</div>
+<input checked="" class="w-4 h-4 accent-secondary cursor-pointer" type="checkbox"/>
+</div>
+<div class="flex items-center justify-between p-space-md bg-surface-container-low rounded-lg">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-secondary">timer</span>
+<div class="flex flex-col">
+<span class="font-title-sm text-title-sm text-on-surface font-semibold">Tolerancia de retardo</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Minutos antes de marcar 'Falta' en Pase de Lista</span>
+</div>
+</div>
+<select class="h-8 px-space-sm bg-surface-container-lowest rounded font-mono-numeric text-mono-numeric text-on-surface text-sm focus:outline-none shadow-sm cursor-pointer">
+<option>5 min</option>
+<option selected="">10 min</option>
+<option>15 min</option>
+<option>Sin tolerancia</option>
+</select>
+</div>
+</div>
+</section>
+<!-- BLOQUE 3: Criterios de Evaluación y Calificaciones Predefinidos -->
+<section class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-md">
+<div class="flex items-center justify-between pb-space-sm bg-gradient-to-r from-transparent to-surface-container-low/50 -mx-space-lg px-space-lg">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-xl">rule</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Etapa 3</span>
+<h2 class="font-title-md text-title-md text-on-surface font-semibold">Criterios de Evaluación y Calificaciones</h2>
+</div>
+</div>
+<div class="flex items-center gap-1.5 px-space-sm py-0.5 rounded-full bg-surface-container text-on-surface font-mono-numeric text-mono-numeric text-xs font-bold">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span>Total: 100% Ponderado</span>
+</div>
+</div>
+<!-- Selector de Plantilla Inicial -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-sm">
+<label class="cursor-pointer">
+<input checked="" class="peer sr-only" name="criteria_preset" type="radio"/>
+<div class="p-space-md rounded-xl bg-surface-container-low peer-checked:bg-surface-container-high peer-checked:shadow-sm transition-all flex flex-col gap-1 h-full">
+<div class="flex items-center justify-between">
+<span class="font-title-sm text-title-sm font-semibold text-primary">Plantilla AulaGrade</span>
+<span class="material-symbols-outlined text-primary text-lg">check_circle</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Esquema balanceado estándar: Trabajos (35%), Exámenes (20%), etc.</p>
+</div>
+</label>
+<label class="cursor-pointer">
+<input class="peer sr-only" name="criteria_preset" type="radio"/>
+<div class="p-space-md rounded-xl bg-surface-container-low peer-checked:bg-surface-container-high peer-checked:shadow-sm transition-all flex flex-col gap-1 h-full">
+<div class="flex items-center justify-between">
+<span class="font-title-sm text-title-sm font-semibold text-on-surface">Copiar de Grupo</span>
+<span class="material-symbols-outlined text-outline text-lg">content_copy</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Hereda los pesos de 'Matemáticas 3°A' o 'Física General'.</p>
+</div>
+</label>
+<label class="cursor-pointer">
+<input class="peer sr-only" name="criteria_preset" type="radio"/>
+<div class="p-space-md rounded-xl bg-surface-container-low peer-checked:bg-surface-container-high peer-checked:shadow-sm transition-all flex flex-col gap-1 h-full">
+<div class="flex items-center justify-between">
+<span class="font-title-sm text-title-sm font-semibold text-on-surface">Desde Cero</span>
+<span class="material-symbols-outlined text-outline text-lg">tune</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Crea competencias libres según requerimientos específicos.</p>
+</div>
+</label>
+</div>
+<!-- Barra Visual de Ponderación Dinámica -->
+<div class="flex flex-col gap-space-xs pt-space-xs">
+<div class="flex justify-between items-center text-xs font-semibold">
+<span class="text-on-surface-variant font-label-md text-label-md">Distribución de Ponderación</span>
+<span class="text-secondary font-mono-numeric text-mono-numeric">100% Asignado</span>
+</div>
+<div class="h-3 w-full bg-surface-container-high rounded-full overflow-hidden flex shadow-inner">
+<div class="bg-secondary h-full" style="width: 35%;" title="Tareas y Trabajos: 35%"></div>
+<div class="bg-primary h-full" style="width: 20%;" title="Exámenes y Pruebas: 20%"></div>
+<div class="bg-tertiary-container h-full" style="width: 20%;" title="Asistencia y Puntualidad: 20%"></div>
+<div class="bg-secondary-container h-full" style="width: 15%;" title="Participación y Talleres: 15%"></div>
+<div class="bg-primary-fixed-dim h-full" style="width: 10%;" title="Autoevaluación: 10%"></div>
+</div>
+<!-- Legend Badges -->
+<div class="flex flex-wrap items-center gap-space-sm pt-space-xs">
+<div class="flex items-center gap-1 font-label-sm text-label-sm text-on-surface">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary"></span>
+<span>Trabajos (35%)</span>
+</div>
+<div class="flex items-center gap-1 font-label-sm text-label-sm text-on-surface">
+<span class="w-2.5 h-2.5 rounded-full bg-primary"></span>
+<span>Exámenes (20%)</span>
+</div>
+<div class="flex items-center gap-1 font-label-sm text-label-sm text-on-surface">
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary-container"></span>
+<span>Asistencia (20%)</span>
+</div>
+<div class="flex items-center gap-1 font-label-sm text-label-sm text-on-surface">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary-container"></span>
+<span>Participación (15%)</span>
+</div>
+<div class="flex items-center gap-1 font-label-sm text-label-sm text-on-surface">
+<span class="w-2.5 h-2.5 rounded-full bg-primary-fixed-dim"></span>
+<span>Autoevaluación (10%)</span>
+</div>
+</div>
+</div>
+<!-- Escala Numérica y Mínimo Aprobatorio -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md pt-space-sm">
+<div class="flex flex-col gap-1.5">
+<label class="font-title-sm text-title-sm text-on-surface">Escala de Calificación</label>
+<select class="w-full h-10 px-space-md bg-surface-container-low rounded-lg font-body-sm text-body-sm text-on-surface focus:outline-none focus:ring-1 focus:ring-secondary cursor-pointer">
+<option selected="">Decimal Oficial (0.0 a 10.0)</option>
+<option>Centesimal (0 a 100 puntos)</option>
+<option>Letras (A, B, C, D, F)</option>
+</select>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="font-title-sm text-title-sm text-on-surface">Mínimo Aprobatorio</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-secondary text-lg pointer-events-none">grade</span>
+<input class="w-full h-10 pl-9 pr-space-md bg-surface-container-low rounded-lg font-mono-numeric text-mono-numeric text-on-surface font-semibold focus:outline-none focus:ring-1 focus:ring-secondary shadow-sm" type="text" value="7.0"/>
+</div>
+</div>
+</div>
+</section>
+<!-- BLOQUE 4: Roster y Carga de Alumnos (Matriculación) -->
+<section class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-md">
+<div class="flex items-center justify-between pb-space-sm bg-gradient-to-r from-transparent to-surface-container-low/50 -mx-space-lg px-space-lg">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-xl">group_add</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Etapa 4</span>
+<h2 class="font-title-md text-title-md text-on-surface font-semibold">Roster y Carga de Alumnos (Matriculación)</h2>
+</div>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="px-space-sm py-1 rounded bg-surface-container text-primary font-label-md text-label-md hover:bg-surface-container-high transition-colors flex items-center gap-1" type="button">
+<span class="material-symbols-outlined text-sm">download</span>
+<span>Descargar Plantilla Excel</span>
+</button>
+</div>
+</div>
+<!-- Enrollment Tabs -->
+<div class="flex border-b border-surface-container-high gap-space-md text-title-sm font-title-sm">
+<button class="pb-space-xs text-primary border-b-2 border-primary font-semibold flex items-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-base">upload_file</span>
+<span>Importar CSV / Excel</span>
+</button>
+<button class="pb-space-xs text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-base">cloud_sync</span>
+<span>Sincronizar SIS / Banner</span>
+</button>
+<button class="pb-space-xs text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-base">person_add</span>
+<span>Manual Rápido</span>
+</button>
+</div>
+<!-- Drag & Drop Dropzone -->
+<div class="p-space-lg bg-surface-container-low/60 rounded-xl flex flex-col items-center justify-center text-center gap-space-sm hover:bg-surface-container-low transition-colors cursor-pointer group">
+<div class="w-12 h-12 rounded-full bg-surface-container-lowest text-primary flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-2xl">cloud_upload</span>
+</div>
+<div class="flex flex-col">
+<p class="font-title-sm text-title-sm text-on-surface font-semibold">Arrastra tu archivo .xlsx o .csv aquí</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">o haz clic para examinar desde tu equipo (hasta 150 registros)</p>
+</div>
+<span class="px-space-sm py-0.5 rounded-full bg-surface-container-lowest text-outline font-label-sm text-label-sm shadow-xs">Formato: Matrícula, Nombre Completo, Correo Institucional</span>
+</div>
+<!-- Live Preview of Loaded Roster -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="font-title-sm text-title-sm text-on-surface font-semibold">Alumnos Listos para Inscripción</span>
+<span class="px-space-xs py-0.5 rounded-full bg-primary-container text-on-primary font-mono-numeric text-mono-numeric text-xs font-semibold">4 precargados</span>
+</div>
+<button class="text-secondary font-label-md text-label-md hover:underline flex items-center gap-0.5" type="button">
+<span class="material-symbols-outlined text-sm">add</span>
+<span>Añadir fila</span>
+</button>
+</div>
+<!-- Quick Table -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-xs">
+<div class="grid grid-cols-12 gap-space-xs bg-surface-container-high/60 px-space-md py-space-xs text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider">
+<div class="col-span-3">Matrícula</div>
+<div class="col-span-5">Estudiante</div>
+<div class="col-span-3">Correo Institucional</div>
+<div class="col-span-1 text-right">Estado</div>
+</div>
+<!-- Student 1 -->
+<div class="grid grid-cols-12 gap-space-xs px-space-md py-space-xs items-center hover:bg-surface-container-low transition-colors">
+<div class="col-span-3 font-mono-numeric text-mono-numeric text-on-surface font-semibold text-xs">AG-2024-0418</div>
+<div class="col-span-5 flex items-center gap-space-sm min-w-0">
+<img class="w-6 h-6 rounded-full object-cover shrink-0" data-alt="Close up modern portrait headshot of a female university student with brown hair wearing glasses in university campus library AulaGrade" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDe5802ximnAiWdMpEIIsCo1jzy8IEi9lK7vgCvyDK9pLWPjLa625EWrVY3pIS_T-YQdOnQJP0EOtk3G6PdwHDgKsGtCxjGw5XUq7LFUukb3hY1hkKBc_xRkFDPj8oeLJemDlAYDDWeSGKXuZwmjAhwB-n0twTJawYB1ZYFnegGVxatG9M-orz5OZdnlowfPxJw09GEar0voyMG_vugnUU8XODPnW1v9_eaHo_1CKioAYVPW8BCg_jmFw"/>
+<span class="font-title-sm text-title-sm text-on-surface truncate">Valeria Sofía Ramos Gómez</span>
+</div>
+<div class="col-span-3 font-body-sm text-body-sm text-on-surface-variant truncate text-xs">v.ramos@aulagrade.edu</div>
+<div class="col-span-1 flex justify-end">
+<span class="material-symbols-outlined text-secondary text-base" title="Listo">check_circle</span>
+</div>
+</div>
+<!-- Student 2 -->
+<div class="grid grid-cols-12 gap-space-xs px-space-md py-space-xs items-center hover:bg-surface-container-low transition-colors bg-surface-container-low/20">
+<div class="col-span-3 font-mono-numeric text-mono-numeric text-on-surface font-semibold text-xs">AG-2024-0422</div>
+<div class="col-span-5 flex items-center gap-space-sm min-w-0">
+<img class="w-6 h-6 rounded-full object-cover shrink-0" data-alt="Portrait headshot of a male college student smiling in an academic classroom environment natural light AulaGrade" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZI4VNf42Dwct5z9pmLc5yYW6Fssnavef4KYSnFD1fKDNg3EEj3mBYdzbEBEw41uGtE-8tqrVQLfTQF5KAoCJX3Uf1NM1leYW5WwpD7ARRMNtCsP5ECxlYSYCZjfV3vwVeQ9Sd8UEVLB5qbfUppdUWQJar6lCMilVgJsfqu1XSymOSGY1_MsUDzWDu-BCNkyDWqjHyw11T4tTkV8wLyyz1se2wenpGdcUejgZ9ZpwI67cq6a1favNgqA"/>
+<span class="font-title-sm text-title-sm text-on-surface truncate">Mateo Emmanuel Silva Cruz</span>
+</div>
+<div class="col-span-3 font-body-sm text-body-sm text-on-surface-variant truncate text-xs">m.silva@aulagrade.edu</div>
+<div class="col-span-1 flex justify-end">
+<span class="material-symbols-outlined text-secondary text-base" title="Listo">check_circle</span>
+</div>
+</div>
+<!-- Student 3 -->
+<div class="grid grid-cols-12 gap-space-xs px-space-md py-space-xs items-center hover:bg-surface-container-low transition-colors">
+<div class="col-span-3 font-mono-numeric text-mono-numeric text-on-surface font-semibold text-xs">AG-2024-0435</div>
+<div class="col-span-5 flex items-center gap-space-sm min-w-0">
+<img class="w-6 h-6 rounded-full object-cover shrink-0" data-alt="Professional studio portrait headshot of an energetic college student with subtle warm lighting AulaGrade" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbWzILLvJvtAfxr5qAYy04wCrk_1i1AOZEPhjRRiQDHZGKU46NyYu_-d0JksDTtzSOPN5j2eGANEW0gVIrQ5ECS5QjTyKdEUDI2E7ng3y5vZJ_V5XW5ybO4P5la51ShkWcfQrXVZNRy0EZZJt6sPJqZr0u0-LAONSBVEBr894kpMbf8rZmwz9pYIZnyn4vioEqDAv5ovb-mbKnUYmRv6hN8pyvpiYuvwrA9vSEhIDAepK9AwF2x0cNcw"/>
+<span class="font-title-sm text-title-sm text-on-surface truncate">Camila Alejandra Paredes</span>
+</div>
+<div class="col-span-3 font-body-sm text-body-sm text-on-surface-variant truncate text-xs">c.paredes@aulagrade.edu</div>
+<div class="col-span-1 flex justify-end">
+<span class="material-symbols-outlined text-secondary text-base" title="Listo">check_circle</span>
+</div>
+</div>
+<!-- Student 4 -->
+<div class="grid grid-cols-12 gap-space-xs px-space-md py-space-xs items-center hover:bg-surface-container-low transition-colors bg-surface-container-low/20">
+<div class="col-span-3 font-mono-numeric text-mono-numeric text-on-surface font-semibold text-xs">AG-2024-0449</div>
+<div class="col-span-5 flex items-center gap-space-sm min-w-0">
+<div class="w-6 h-6 rounded-full bg-surface-container-high text-primary flex items-center justify-center font-mono-numeric text-xs font-bold shrink-0">
+                  DL
+                </div>
+<span class="font-title-sm text-title-sm text-on-surface truncate">Diego Luna Valenzuela</span>
+</div>
+<div class="col-span-3 font-body-sm text-body-sm text-on-surface-variant truncate text-xs">d.luna@aulagrade.edu</div>
+<div class="col-span-1 flex justify-end">
+<span class="material-symbols-outlined text-secondary text-base" title="Listo">check_circle</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- RIGHT: Live Group Preview & Validation Inspector (4 Cols Sticky) -->
+<aside class="xl:col-span-4 sticky top-20 flex flex-col gap-space-md">
+<!-- Live Card Preview -->
+<div class="bg-surface-container-lowest rounded-xl shadow-md p-space-md flex flex-col gap-space-md">
+<div class="flex items-center justify-between pb-space-xs">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+            Vista Previa de Tarjeta
+          </span>
+<span class="px-space-xs py-0.5 rounded bg-surface-container text-outline font-mono-numeric text-xs">Dashboard Live</span>
+</div>
+<!-- Rendered Group Card Simulation -->
+<div class="bg-surface-container-low rounded-xl p-space-md flex flex-col gap-space-md shadow-sm relative overflow-hidden">
+<div class="absolute -right-6 -bottom-6 w-24 h-24 bg-primary/5 rounded-full blur-xl pointer-events-none"></div>
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-primary-container text-on-primary flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-2xl">science</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant font-mono-numeric" id="preview-code">FIS-302 • 3° Semestre</span>
+<h3 class="font-title-md text-title-md text-on-surface font-bold leading-tight" id="preview-name">Física Cuántica I</h3>
+</div>
+</div>
+<span class="px-space-sm py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-semibold">Grupo A</span>
+</div>
+<!-- Metadata Badges -->
+<div class="grid grid-cols-2 gap-space-xs font-label-md text-label-md text-on-surface-variant">
+<div class="flex items-center gap-1.5 bg-surface-container-lowest p-space-xs rounded">
+<span class="material-symbols-outlined text-secondary text-base">meeting_room</span>
+<span class="truncate">Edificio B - 204</span>
+</div>
+<div class="flex items-center gap-1.5 bg-surface-container-lowest p-space-xs rounded">
+<span class="material-symbols-outlined text-secondary text-base">wb_sunny</span>
+<span>Turno Matutino</span>
+</div>
+<div class="flex items-center gap-1.5 bg-surface-container-lowest p-space-xs rounded">
+<span class="material-symbols-outlined text-secondary text-base">calendar_month</span>
+<span>Lun, Mié, Vie</span>
+</div>
+<div class="flex items-center gap-1.5 bg-surface-container-lowest p-space-xs rounded">
+<span class="material-symbols-outlined text-secondary text-base">group</span>
+<span>4 / 35 Alumnos</span>
+</div>
+</div>
+<!-- Mini Progress Bar to Capacity -->
+<div class="flex flex-col gap-1">
+<div class="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span>Capacidad Asignada</span>
+<span class="font-mono-numeric font-semibold">11.4% (4/35)</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-secondary rounded-full" style="width: 11.4%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Readiness Checklist Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-md flex flex-col gap-space-md">
+<h4 class="font-title-sm text-title-sm text-on-surface font-semibold flex items-center justify-between">
+<span>Lista de Verificación</span>
+<span class="font-mono-numeric text-mono-numeric text-xs text-secondary font-bold">4 de 4 Completos</span>
+</h4>
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between p-space-xs rounded bg-surface-container-low text-on-surface">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-base">check_circle</span>
+<span class="font-body-sm text-body-sm font-medium">Información Básica</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">FIS-302</span>
+</div>
+<div class="flex items-center justify-between p-space-xs rounded bg-surface-container-low text-on-surface">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-base">check_circle</span>
+<span class="font-body-sm text-body-sm font-medium">Horarios de Clase</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">3 sesiones</span>
+</div>
+<div class="flex items-center justify-between p-space-xs rounded bg-surface-container-low text-on-surface">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-base">check_circle</span>
+<span class="font-body-sm text-body-sm font-medium">Criterios de Evaluación</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">100% Ok</span>
+</div>
+<div class="flex items-center justify-between p-space-xs rounded bg-surface-container-low text-on-surface">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-base">check_circle</span>
+<span class="font-body-sm text-body-sm font-medium">Roster de Alumnos</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">4 alumnos</span>
+</div>
+</div>
+<!-- System Notice Banner -->
+<div class="p-space-sm rounded-lg bg-surface-container-high/60 flex items-start gap-space-xs text-on-surface">
+<span class="material-symbols-outlined text-secondary text-lg shrink-0 mt-0.5">auto_awesome</span>
+<p class="font-label-md text-label-md leading-relaxed text-on-surface-variant">
+            Al activar el grupo se generarán automáticamente las matrices del <strong class="text-on-surface">Cuaderno de Notas</strong> y la lista de control de <strong class="text-on-surface">Pase de Asistencia</strong> para las 3 sesiones semanales configuradas.
+          </p>
+</div>
+<!-- Sticky Action Trigger -->
+<button class="w-full py-space-sm rounded-lg bg-primary text-on-primary font-title-sm text-title-sm hover:bg-primary-container transition-all flex items-center justify-center gap-space-xs shadow-md shadow-primary/20 hover:shadow-lg" type="button">
+<span class="material-symbols-outlined text-lg">rocket_launch</span>
+<span>Crear y Activar Grupo</span>
+</button>
+</div>
+</aside>
+</div>
+</div>
+<script>
+  // Simple reactive link between the Subject inputs and the preview widget
+  const subjectInput = document.getElementById('input-subject-name');
+  const codeInput = document.getElementById('input-subject-code');
+  const previewName = document.getElementById('preview-name');
+  const previewCode = document.getElementById('preview-code');
+
+  if (subjectInput && previewName) {
+    subjectInput.addEventListener('input', (e) => {
+      previewName.textContent = e.target.value.trim() || 'Nombre de Asignatura';
+    });
+  }
+
+  if (codeInput && previewCode) {
+    codeInput.addEventListener('input', (e) => {
+      previewCode.textContent = (e.target.value.trim().toUpperCase() || 'COD-000') + ' • 3° Semestre';
+    });
+  }
+</script></main></div></body></html>
