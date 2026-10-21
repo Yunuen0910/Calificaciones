@@ -12,6 +12,11 @@ interface GradebookViewProps {
   selectedGroupId?: string;
   onSelectGroup: (groupId: string) => void;
   onOpenCreateGroup: () => void;
+  assignments?: AssignmentGrade[];
+  setAssignments?: React.Dispatch<React.SetStateAction<AssignmentGrade[]>>;
+  scores?: Record<string, Record<string, number>>;
+  setScores?: React.Dispatch<React.SetStateAction<Record<string, Record<string, number>>>>;
+  onNavigateToFinalGrades?: () => void;
 }
 
 export const GradebookView: React.FC<GradebookViewProps> = ({
@@ -19,16 +24,29 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
   selectedGroupId,
   onSelectGroup,
   onOpenCreateGroup,
+  assignments: externalAssignments,
+  setAssignments: externalSetAssignments,
+  scores: externalScores,
+  setScores: externalSetScores,
+  onNavigateToFinalGrades,
 }) => {
   const currentGroup = groups.find((g) => g.id === selectedGroupId) || groups[0];
 
-  const [assignments, setAssignments] = useState<AssignmentGrade[]>(INITIAL_ASSIGNMENTS);
-  const [scores, setScores] = useState<Record<string, Record<string, number>>>(INITIAL_STUDENT_SCORES);
+  const [internalAssignments, setInternalAssignments] = useState<AssignmentGrade[]>(INITIAL_ASSIGNMENTS);
+  const [internalScores, setInternalScores] = useState<Record<string, Record<string, number>>>(INITIAL_STUDENT_SCORES);
+
+  const assignments = externalAssignments ?? internalAssignments;
+  const setAssignments = externalSetAssignments ?? setInternalAssignments;
+  const scores = externalScores ?? internalScores;
+  const setScores = externalSetScores ?? setInternalScores;
+
   const [editingCell, setEditingCell] = useState<{ studentId: string; assignmentId: string } | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [showAddAssignmentModal, setShowAddAssignmentModal] = useState(false);
   const [newAsgName, setNewAsgName] = useState('');
   const [newAsgCategory, setNewAsgCategory] = useState<'homework' | 'exams' | 'attendance' | 'participation' | 'selfEval'>('homework');
+  const [selectedPeriodFilter, setSelectedPeriodFilter] = useState<number | 'all'>('all');
+  const [newAsgPeriod, setNewAsgPeriod] = useState<number>(1);
 
   if (!currentGroup) {
     return (
@@ -46,8 +64,75 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
 
   const { criteria, students } = currentGroup;
   const weights = criteria.weights;
+  const structure = currentGroup.criteria.evaluationStructure || 'parciales';
+  const numPeriods = currentGroup.criteria.numberOfPeriods || 3;
 
-  // Calculate weighted average for a student
+  const getPeriodName = (idx: number) => {
+    switch (structure) {
+      case 'trimestres': return `${idx}° Trimestre`;
+      case 'parciales': return `${idx}° Parcial`;
+      case 'bimestres': return `Bimestre ${idx}`;
+      case 'cuatrimestres': return `${idx}° Cuatrimestre`;
+      case 'periodos': return `Periodo ${idx}`;
+      case 'ciclo_unico': return `Ciclo Anual`;
+    }
+  };
+
+  const visibleAssignments = assignments.filter((a) => {
+    if (selectedPeriodFilter === 'all') return true;
+    return a.periodIndex === selectedPeriodFilter || !a.periodIndex;
+  });
+
+  // Calculate weighted average for a specific period
+  const calculatePeriodAverage = (studentId: string, periodIdx: number) => {
+    const studentScores = scores[studentId] || {};
+    const periodAssignments = assignments.filter((a) => a.periodIndex === periodIdx);
+    if (periodAssignments.length === 0) return 10.0;
+
+    const getCatPeriodAvg = (category: 'homework' | 'exams' | 'attendance' | 'participation' | 'selfEval') => {
+      const catAsgs = periodAssignments.filter((a) => a.category === category);
+      if (catAsgs.length === 0) return 10.0;
+      let sum = 0;
+      let count = 0;
+      for (const a of catAsgs) {
+        if (studentScores[a.id] !== undefined) {
+          sum += studentScores[a.id];
+          count++;
+        }
+      }
+      return count > 0 ? sum / count : 10.0;
+    };
+
+    const hw = getCatPeriodAvg('homework');
+    const exam = getCatPeriodAvg('exams');
+    const att = getCatPeriodAvg('attendance');
+    const part = getCatPeriodAvg('participation');
+    const self = getCatPeriodAvg('selfEval');
+
+    const weighted = (
+      (hw * weights.homework) +
+      (exam * weights.exams) +
+      (att * weights.attendance) +
+      (part * weights.participation) +
+      (self * weights.selfEval)
+    ) / 100;
+
+    return Math.round(weighted * 10) / 10;
+  };
+
+  // Calculate final cumulative grade
+  const calculateStudentFinalGrade = (studentId: string) => {
+    if (structure === 'ciclo_unico') {
+      return calculateStudentAverage(studentId);
+    }
+    let sum = 0;
+    for (let p = 1; p <= numPeriods; p++) {
+      sum += calculatePeriodAverage(studentId, p);
+    }
+    return Math.round((sum / numPeriods) * 10) / 10;
+  };
+
+  // Calculate overall weighted average for a student (all assignments)
   const calculateStudentAverage = (studentId: string) => {
     const studentScores = scores[studentId] || {};
 
@@ -106,6 +191,7 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
       id: `asg-${Date.now()}`,
       name: newAsgName.trim(),
       category: newAsgCategory,
+      periodIndex: newAsgPeriod,
       maxScore: 10
     };
     setAssignments(prev => [...prev, newAsg]);
@@ -140,6 +226,22 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // Fill missing scores with realistic test values
+  const fillSampleScores = () => {
+    setScores(prev => {
+      const next = { ...prev };
+      students.forEach(s => {
+        if (!next[s.id]) next[s.id] = {};
+        assignments.forEach(a => {
+          if (next[s.id][a.id] === undefined) {
+            next[s.id][a.id] = Math.round((7.2 + Math.random() * 2.6) * 10) / 10;
+          }
+        });
+      });
+      return next;
+    });
   };
 
   // Class stats
@@ -182,7 +284,26 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-space-sm self-start md:self-auto shrink-0">
+        <div className="flex items-center gap-space-sm self-start md:self-auto shrink-0 flex-wrap">
+          {onNavigateToFinalGrades && (
+            <button
+              onClick={onNavigateToFinalGrades}
+              className="px-3 py-2 rounded-lg bg-primary text-on-primary text-xs font-bold hover:bg-primary-container transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-base">workspace_premium</span>
+              <span>Calificaciones Finales & Boletas</span>
+            </button>
+          )}
+
+          <button
+            onClick={fillSampleScores}
+            className="px-3 py-2 rounded-lg bg-surface-container-low text-on-surface text-xs font-semibold hover:bg-surface-container transition-colors flex items-center gap-1.5 shadow-sm border border-[#E2E8F0] cursor-pointer"
+            title="Rellenar calificaciones faltantes con valores de prueba"
+          >
+            <span className="material-symbols-outlined text-base text-secondary">auto_awesome</span>
+            <span>Simular Notas</span>
+          </button>
+
           <button
             onClick={() => setShowAddAssignmentModal(true)}
             className="px-3 py-2 rounded-lg bg-surface-container-high text-on-surface text-xs font-semibold hover:bg-surface-variant transition-colors flex items-center gap-1.5 shadow-sm border border-[#E2E8F0] cursor-pointer"
@@ -229,12 +350,91 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
 
         <div className="bg-surface-container-lowest p-3 rounded-lg border border-[#E2E8F0] shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold">Esquema Activo</span>
-            <p className="text-xs font-bold text-secondary mt-1">Trabajos {weights.homework}% • Exámenes {weights.exams}%</p>
+            <span className="text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold">Cortes de Evaluación</span>
+            <p className="text-xs font-bold text-secondary mt-1">
+              {structure === 'trimestres' ? `${numPeriods} Trimestres (Secundaria)` :
+               structure === 'parciales' ? `${numPeriods} Parciales (Prepa/Univ)` :
+               structure === 'bimestres' ? `${numPeriods} Bimestres` :
+               structure === 'cuatrimestres' ? `${numPeriods} Cuatrimestres` :
+               structure === 'periodos' ? `${numPeriods} Periodos Modulares` : 'Ciclo Continuo'}
+            </p>
           </div>
-          <span className="material-symbols-outlined text-secondary text-2xl">tune</span>
+          <span className="material-symbols-outlined text-secondary text-2xl">calendar_view_week</span>
         </div>
       </div>
+
+      {/* Period / Trimestre Filter Tabs */}
+      {structure !== 'ciclo_unico' && (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-3 text-xs">
+          <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider pr-1 flex items-center gap-1">
+            <span className="material-symbols-outlined text-sm text-secondary">filter_alt</span>
+            <span>Corte:</span>
+          </span>
+          <button
+            onClick={() => setSelectedPeriodFilter('all')}
+            className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer border ${
+              selectedPeriodFilter === 'all'
+                ? 'bg-primary-container text-on-primary border-primary-container shadow-xs'
+                : 'bg-surface-container-low text-on-surface border-[#CBD5E1] hover:bg-surface-container'
+            }`}
+          >
+            Todos ({assignments.length})
+          </button>
+          {Array.from({ length: numPeriods }, (_, i) => i + 1).map((idx) => {
+            const countInPeriod = assignments.filter(a => a.periodIndex === idx).length;
+            return (
+              <button
+                key={idx}
+                onClick={() => setSelectedPeriodFilter(idx)}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer border ${
+                  selectedPeriodFilter === idx
+                    ? 'bg-primary-container text-on-primary border-primary-container shadow-xs'
+                    : 'bg-surface-container-low text-on-surface border-[#CBD5E1] hover:bg-surface-container'
+                }`}
+              >
+                {getPeriodName(idx)} {countInPeriod > 0 && `(${countInPeriod})`}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Isolated Period Banner when filtering */}
+      {selectedPeriodFilter !== 'all' && (
+        <div className="mb-3 p-3 bg-secondary/10 border border-secondary/30 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs animate-fadeIn">
+          <div className="flex items-center gap-2 text-on-surface">
+            <span className="material-symbols-outlined text-secondary text-base">filter_list</span>
+            <span>
+              Corte Aislado: <strong>{getPeriodName(selectedPeriodFilter)}</strong> ({visibleAssignments.length} actividades). 
+              <span className="text-on-surface-variant ml-1 font-normal">Las actividades de los demás periodos están cortadas para enfoque docente.</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {Number(selectedPeriodFilter) > 1 && (
+              <button
+                onClick={() => setSelectedPeriodFilter(Number(selectedPeriodFilter) - 1)}
+                className="px-2.5 py-1 bg-surface-container-low hover:bg-surface-container text-on-surface rounded-lg border border-[#CBD5E1] text-[11px] font-bold transition-colors cursor-pointer"
+              >
+                ← {getPeriodName(Number(selectedPeriodFilter) - 1)}
+              </button>
+            )}
+            {Number(selectedPeriodFilter) < numPeriods && (
+              <button
+                onClick={() => setSelectedPeriodFilter(Number(selectedPeriodFilter) + 1)}
+                className="px-2.5 py-1 bg-surface-container-low hover:bg-surface-container text-on-surface rounded-lg border border-[#CBD5E1] text-[11px] font-bold transition-colors cursor-pointer"
+              >
+                {getPeriodName(Number(selectedPeriodFilter) + 1)} →
+              </button>
+            )}
+            <button
+              onClick={() => setSelectedPeriodFilter('all')}
+              className="px-2.5 py-1 bg-surface-container-high hover:bg-surface-container text-primary rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
+            >
+              Ver Todos los Periodos
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Gradebook Matrix Table */}
       <div className="bg-surface-container-lowest rounded-xl shadow-xs border border-[#E2E8F0] overflow-hidden flex flex-col">
@@ -259,6 +459,30 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-xs">
             <thead>
+              {/* Grouping header when viewing all periods */}
+              {selectedPeriodFilter === 'all' && structure !== 'ciclo_unico' && (
+                <tr className="bg-surface-container-high/40 border-b border-[#CBD5E1] text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
+                  <th colSpan={2} className="py-2 px-3 border-r border-[#CBD5E1] text-left">
+                    Datos del Alumno
+                  </th>
+                  {Array.from({ length: numPeriods }, (_, i) => i + 1).map((pIdx) => {
+                    const pAsgs = assignments.filter(a => a.periodIndex === pIdx);
+                    return (
+                      <th
+                        key={pIdx}
+                        colSpan={pAsgs.length + 1}
+                        className="py-2 px-3 text-center border-r-4 border-slate-300 bg-secondary/5 text-secondary"
+                      >
+                        {getPeriodName(pIdx)} • {pAsgs.length} Actividades + Subtotal
+                      </th>
+                    );
+                  })}
+                  <th colSpan={2} className="py-2 px-3 text-center bg-surface-container-low text-primary">
+                    Consolidado Final
+                  </th>
+                </tr>
+              )}
+
               <tr className="bg-surface-container-high/60 border-b border-[#CBD5E1] text-on-surface-variant text-[11px] uppercase tracking-wider font-semibold">
                 <th className="py-2.5 px-3 sticky left-0 bg-surface-container-high/95 z-20 w-32 border-r border-[#CBD5E1]">
                   Matrícula
@@ -266,21 +490,74 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
                 <th className="py-2.5 px-3 sticky left-32 bg-surface-container-high/95 z-20 min-w-56 border-r border-[#CBD5E1]">
                   Estudiante
                 </th>
-                {assignments.map((asg) => (
-                  <th key={asg.id} className="py-2.5 px-3 text-center min-w-32 border-r border-[#CBD5E1]">
-                    <div className="flex flex-col items-center">
-                      <span className="font-bold text-on-surface truncate max-w-28" title={asg.name}>
-                        {asg.name}
-                      </span>
-                      <span className="text-[10px] text-secondary font-mono-numeric">
-                        {asg.category === 'homework' ? `Trabajos (${weights.homework}%)` :
-                         asg.category === 'exams' ? `Examen (${weights.exams}%)` :
-                         asg.category === 'attendance' ? `Asistencia (${weights.attendance}%)` :
-                         asg.category === 'participation' ? `Part. (${weights.participation}%)` : `Auto. (${weights.selfEval}%)`}
-                      </span>
-                    </div>
-                  </th>
-                ))}
+
+                {/* If single period selected */}
+                {selectedPeriodFilter !== 'all' ? (
+                  <>
+                    {visibleAssignments.map((asg) => (
+                      <th key={asg.id} className="py-2.5 px-3 text-center min-w-32 border-r border-[#CBD5E1]">
+                        <div className="flex flex-col items-center">
+                          <span className="font-bold text-on-surface truncate max-w-28" title={asg.name}>
+                            {asg.name}
+                          </span>
+                          <span className="text-[10px] text-secondary font-mono-numeric">
+                            {asg.category === 'homework' ? `Trabajos (${weights.homework}%)` :
+                             asg.category === 'exams' ? `Examen (${weights.exams}%)` :
+                             asg.category === 'attendance' ? `Asistencia (${weights.attendance}%)` :
+                             asg.category === 'participation' ? `Part. (${weights.participation}%)` : `Auto. (${weights.selfEval}%)`}
+                          </span>
+                          {asg.periodIndex && (
+                            <span className="text-[9px] text-outline font-medium mt-0.5">
+                              {getPeriodName(asg.periodIndex)}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                    ))}
+                    {/* Period Subtotal Column */}
+                    <th className="py-2.5 px-3 text-center font-bold text-secondary min-w-28 border-r-2 border-secondary bg-secondary/10">
+                      <div className="flex flex-col items-center">
+                        <span>Subtotal</span>
+                        <span className="text-[9px] text-secondary font-normal">{getPeriodName(selectedPeriodFilter)}</span>
+                      </div>
+                    </th>
+                  </>
+                ) : (
+                  /* If all periods selected: group by period with subtotal divider */
+                  Array.from({ length: numPeriods }, (_, i) => i + 1).map((pIdx) => {
+                    const pAsgs = assignments.filter(a => a.periodIndex === pIdx);
+                    return (
+                      <React.Fragment key={pIdx}>
+                        {pAsgs.map((asg) => (
+                          <th key={asg.id} className="py-2.5 px-3 text-center min-w-32 border-r border-[#CBD5E1]">
+                            <div className="flex flex-col items-center">
+                              <span className="font-bold text-on-surface truncate max-w-28" title={asg.name}>
+                                {asg.name}
+                              </span>
+                              <span className="text-[10px] text-secondary font-mono-numeric">
+                                {asg.category === 'homework' ? `Trabajos (${weights.homework}%)` :
+                                 asg.category === 'exams' ? `Examen (${weights.exams}%)` :
+                                 asg.category === 'attendance' ? `Asistencia (${weights.attendance}%)` :
+                                 asg.category === 'participation' ? `Part. (${weights.participation}%)` : `Auto. (${weights.selfEval}%)`}
+                              </span>
+                              <span className="text-[9px] text-outline font-medium mt-0.5">
+                                {getPeriodName(pIdx)}
+                              </span>
+                            </div>
+                          </th>
+                        ))}
+                        {/* Period Subtotal & Delimiter Column */}
+                        <th className="py-2.5 px-3 text-center font-bold text-secondary min-w-28 border-r-4 border-slate-300 bg-secondary/10">
+                          <div className="flex flex-col items-center">
+                            <span>Subtotal</span>
+                            <span className="text-[9px] text-secondary font-normal">{getPeriodName(pIdx)}</span>
+                          </div>
+                        </th>
+                      </React.Fragment>
+                    );
+                  })
+                )}
+
                 <th className="py-2.5 px-3 text-center font-bold text-primary min-w-28 border-r border-[#CBD5E1] bg-surface-container-low">
                   Promedio Final
                 </th>
@@ -292,7 +569,7 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
             <tbody className="divide-y divide-[#F1F5F9]">
               {students.map((student, idx) => {
                 const studentScores = scores[student.id] || {};
-                const finalAvg = calculateStudentAverage(student.id);
+                const finalAvg = calculateStudentFinalGrade(student.id);
                 const isPassing = finalAvg >= criteria.minPassingGrade;
                 const isAtRisk = !isPassing && finalAvg >= 6.0;
 
@@ -317,44 +594,103 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
                       </div>
                     </td>
 
-                    {/* Assignments inline editing */}
-                    {assignments.map((asg) => {
-                      const score = studentScores[asg.id];
-                      const isEditing = editingCell?.studentId === student.id && editingCell?.assignmentId === asg.id;
+                    {/* If single period selected */}
+                    {selectedPeriodFilter !== 'all' ? (
+                      <>
+                        {visibleAssignments.map((asg) => {
+                          const score = studentScores[asg.id];
+                          const isEditing = editingCell?.studentId === student.id && editingCell?.assignmentId === asg.id;
 
-                      return (
-                        <td 
-                          key={asg.id} 
-                          onClick={() => {
-                            setEditingCell({ studentId: student.id, assignmentId: asg.id });
-                            setEditValue(score !== undefined ? String(score) : '');
-                          }}
-                          className="py-1 px-2 text-center border-r border-[#E2E8F0] cursor-pointer hover:bg-surface-container-high/40 transition-colors"
-                        >
-                          {isEditing ? (
-                            <input
-                              autoFocus
-                              type="number"
-                              step="0.1"
-                              min="0"
-                              max="10"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={() => handleCellBlurOrEnter(student.id, asg.id)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleCellBlurOrEnter(student.id, asg.id);
-                                if (e.key === 'Escape') setEditingCell(null);
+                          return (
+                            <td 
+                              key={asg.id} 
+                              onClick={() => {
+                                setEditingCell({ studentId: student.id, assignmentId: asg.id });
+                                setEditValue(score !== undefined ? String(score) : '');
                               }}
-                              className="w-16 h-7 text-center font-mono-numeric text-xs font-bold text-primary bg-white border-2 border-secondary rounded focus:outline-none shadow-sm"
-                            />
-                          ) : (
-                            <span className="font-mono-numeric text-xs font-semibold text-on-surface">
-                              {score !== undefined ? score.toFixed(1) : '-'}
-                            </span>
-                          )}
+                              className="py-1 px-2 text-center border-r border-[#E2E8F0] cursor-pointer hover:bg-surface-container-high/40 transition-colors"
+                            >
+                              {isEditing ? (
+                                <input
+                                  autoFocus
+                                  type="number"
+                                  step="0.1"
+                                  min="0"
+                                  max="10"
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  onBlur={() => handleCellBlurOrEnter(student.id, asg.id)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleCellBlurOrEnter(student.id, asg.id);
+                                    if (e.key === 'Escape') setEditingCell(null);
+                                  }}
+                                  className="w-16 h-7 text-center font-mono-numeric text-xs font-bold text-primary bg-white border-2 border-secondary rounded focus:outline-none shadow-sm"
+                                />
+                              ) : (
+                                <span className="font-mono-numeric text-xs font-semibold text-on-surface">
+                                  {score !== undefined ? score.toFixed(1) : '-'}
+                                </span>
+                              )}
+                            </td>
+                          );
+                        })}
+                        {/* Period Subtotal Cell */}
+                        <td className="py-2 px-3 text-center font-mono-numeric text-xs font-bold border-r-2 border-secondary bg-secondary/10 text-secondary">
+                          {calculatePeriodAverage(student.id, selectedPeriodFilter).toFixed(1)}
                         </td>
-                      );
-                    })}
+                      </>
+                    ) : (
+                      /* If all periods selected: group by period with subtotal divider */
+                      Array.from({ length: numPeriods }, (_, i) => i + 1).map((pIdx) => {
+                        const pAsgs = assignments.filter(a => a.periodIndex === pIdx);
+                        const pSubtotal = calculatePeriodAverage(student.id, pIdx);
+                        return (
+                          <React.Fragment key={pIdx}>
+                            {pAsgs.map((asg) => {
+                              const score = studentScores[asg.id];
+                              const isEditing = editingCell?.studentId === student.id && editingCell?.assignmentId === asg.id;
+
+                              return (
+                                <td 
+                                  key={asg.id} 
+                                  onClick={() => {
+                                    setEditingCell({ studentId: student.id, assignmentId: asg.id });
+                                    setEditValue(score !== undefined ? String(score) : '');
+                                  }}
+                                  className="py-1 px-2 text-center border-r border-[#E2E8F0] cursor-pointer hover:bg-surface-container-high/40 transition-colors"
+                                >
+                                  {isEditing ? (
+                                    <input
+                                      autoFocus
+                                      type="number"
+                                      step="0.1"
+                                      min="0"
+                                      max="10"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      onBlur={() => handleCellBlurOrEnter(student.id, asg.id)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleCellBlurOrEnter(student.id, asg.id);
+                                        if (e.key === 'Escape') setEditingCell(null);
+                                      }}
+                                      className="w-16 h-7 text-center font-mono-numeric text-xs font-bold text-primary bg-white border-2 border-secondary rounded focus:outline-none shadow-sm"
+                                    />
+                                  ) : (
+                                    <span className="font-mono-numeric text-xs font-semibold text-on-surface">
+                                      {score !== undefined ? score.toFixed(1) : '-'}
+                                    </span>
+                                  )}
+                                </td>
+                              );
+                            })}
+                            {/* Period Subtotal & Delimiter Cell */}
+                            <td className="py-2 px-3 text-center font-mono-numeric text-xs font-bold border-r-4 border-slate-300 bg-secondary/10 text-secondary">
+                              {pSubtotal.toFixed(1)}
+                            </td>
+                          </React.Fragment>
+                        );
+                      })
+                    )}
 
                     {/* Promedio Final */}
                     <td className="py-2 px-3 text-center font-mono-numeric text-sm font-bold border-r border-[#E2E8F0] bg-surface-container-low/40">
@@ -426,6 +762,21 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
                   <option value="selfEval">Autoevaluación ({weights.selfEval}%)</option>
                 </select>
               </div>
+
+              {structure !== 'ciclo_unico' && (
+                <div>
+                  <label className="text-xs font-semibold text-on-surface">Corte Evaluativo / Periodo</label>
+                  <select
+                    value={newAsgPeriod}
+                    onChange={(e) => setNewAsgPeriod(Number(e.target.value))}
+                    className="w-full h-9 px-3 text-xs bg-surface-container-low rounded border border-[#CBD5E1] mt-1 cursor-pointer font-medium"
+                  >
+                    {Array.from({ length: numPeriods }, (_, i) => i + 1).map((idx) => (
+                      <option key={idx} value={idx}>{getPeriodName(idx)}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="flex justify-end gap-2 pt-3">
                 <button

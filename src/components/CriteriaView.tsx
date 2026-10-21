@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Group, GradingCriteria } from '../types';
+import { Group, GradingCriteria, EvaluationStructure } from '../types';
 
 interface CriteriaViewProps {
   groups: Group[];
@@ -32,6 +32,8 @@ export const CriteriaView: React.FC<CriteriaViewProps> = ({
   });
   const [scale, setScale] = useState<'decimal' | 'centesimal' | 'letters'>(currentGroup?.criteria.scale || 'decimal');
   const [minPassingGrade, setMinPassingGrade] = useState(currentGroup?.criteria.minPassingGrade || 7.0);
+  const [evaluationStructure, setEvaluationStructure] = useState<EvaluationStructure>(currentGroup?.criteria.evaluationStructure || 'parciales');
+  const [numberOfPeriods, setNumberOfPeriods] = useState<number>(currentGroup?.criteria.numberOfPeriods || 3);
   const [toastMessage, setToastMessage] = useState(false);
 
   // Sync if selected group changes
@@ -40,6 +42,8 @@ export const CriteriaView: React.FC<CriteriaViewProps> = ({
       setWeights(currentGroup.criteria.weights);
       setScale(currentGroup.criteria.scale);
       setMinPassingGrade(currentGroup.criteria.minPassingGrade);
+      setEvaluationStructure(currentGroup.criteria.evaluationStructure || 'parciales');
+      setNumberOfPeriods(currentGroup.criteria.numberOfPeriods || 3);
     }
   }, [currentGroup?.id]);
 
@@ -63,6 +67,8 @@ export const CriteriaView: React.FC<CriteriaViewProps> = ({
     if (totalWeight !== 100) return;
     onUpdateCriteria(currentGroup.id, {
       preset: currentGroup.criteria.preset,
+      evaluationStructure,
+      numberOfPeriods: Number(numberOfPeriods) || 3,
       weights,
       scale,
       minPassingGrade: Number(minPassingGrade)
@@ -121,6 +127,69 @@ export const CriteriaView: React.FC<CriteriaViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg py-space-lg">
         {/* Left: Weight Distribution Engine */}
         <div className="lg:col-span-8 flex flex-col gap-space-lg">
+          {/* Card: Estructura de Cortes y Periodos */}
+          <div className="bg-surface-container-lowest rounded-xl p-space-md border border-[#E2E8F0] shadow-sm flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#F1F5F9]">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-secondary text-xl">calendar_view_week</span>
+                <div>
+                  <h3 className="text-xs font-bold text-on-surface">Modalidad de Cortes Evaluativos</h3>
+                  <p className="text-[11px] text-on-surface-variant">
+                    Configura la división temporal de las calificaciones (Trimestres para Secundaria/Básica, Parciales para Preparatoria/Universidad, etc.).
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <span className="text-[11px] font-semibold text-on-surface-variant">Cortes:</span>
+                <select
+                  value={numberOfPeriods}
+                  onChange={(e) => setNumberOfPeriods(Number(e.target.value))}
+                  className="h-8 px-2 bg-surface-container-low rounded-lg font-mono-numeric text-xs font-bold text-primary border border-[#CBD5E1] cursor-pointer"
+                >
+                  <option value={2}>2 Cortes</option>
+                  <option value={3}>3 Cortes (Estándar)</option>
+                  <option value={4}>4 Cortes</option>
+                  <option value={5}>5 Cortes (Bimestral)</option>
+                  <option value={6}>6 Cortes</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+              {[
+                { id: 'trimestres', label: 'Por Trimestre', desc: 'Secundaria / Básico', icon: 'view_week' },
+                { id: 'parciales', label: 'Por Parciales', desc: 'Prepa / Universidad', icon: 'splitscreen' },
+                { id: 'bimestres', label: 'Por Bimestre', desc: '5 Cortes bimestrales', icon: 'calendar_month' },
+                { id: 'cuatrimestres', label: 'Por Cuatrimestre', desc: '3 Cuatrimestres', icon: 'view_quilt' },
+                { id: 'periodos', label: 'Por Periodo / Bloque', desc: 'Módulos Flexibles', icon: 'event_repeat' },
+                { id: 'ciclo_unico', label: 'Ciclo Continuo', desc: 'Sin cortes intermedios', icon: 'all_inclusive' },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setEvaluationStructure(item.id as EvaluationStructure);
+                    if (item.id === 'bimestres') setNumberOfPeriods(5);
+                    else if (item.id === 'ciclo_unico') setNumberOfPeriods(1);
+                    else setNumberOfPeriods(3);
+                  }}
+                  className={`p-2 rounded-lg flex flex-col items-center text-center transition-all cursor-pointer border ${
+                    evaluationStructure === item.id
+                      ? 'bg-primary-container text-on-primary border-primary-container shadow-xs'
+                      : 'bg-surface-container-low text-on-surface border-[#E2E8F0] hover:bg-surface-container'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-base mb-0.5">{item.icon}</span>
+                  <span className="text-[11px] font-bold leading-tight">{item.label}</span>
+                  <span className={`text-[9px] mt-0.5 leading-none ${evaluationStructure === item.id ? 'text-on-primary-container' : 'text-outline'}`}>
+                    {item.desc}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="bg-surface-container-lowest rounded-xl p-space-lg border border-[#E2E8F0] shadow-sm flex flex-col gap-space-md">
             <div className="flex items-center justify-between pb-space-sm border-b border-[#F1F5F9]">
               <div className="flex items-center gap-2">

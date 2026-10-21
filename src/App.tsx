@@ -4,13 +4,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Group, GradingCriteria } from './types';
-import { INITIAL_GROUPS } from './data/mockData';
+import { Group, GradingCriteria, AssignmentGrade } from './types';
+import { INITIAL_GROUPS, INITIAL_ASSIGNMENTS, INITIAL_STUDENT_SCORES } from './data/mockData';
 import { Sidebar, NavTab } from './components/Sidebar';
 import { Header } from './components/Header';
 import { AltaGrupoView } from './components/AltaGrupoView';
 import { DashboardView } from './components/DashboardView';
 import { GradebookView } from './components/GradebookView';
+import { FinalGradesView } from './components/FinalGradesView';
 import { AttendanceView } from './components/AttendanceView';
 import { CriteriaView } from './components/CriteriaView';
 import { SearchModal } from './components/SearchModal';
@@ -37,10 +38,44 @@ export default function App() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [newlyCreatedGroup, setNewlyCreatedGroup] = useState<Group | null>(null);
 
+  // Shared assignments & scores state
+  const [assignments, setAssignments] = useState<AssignmentGrade[]>(() => {
+    const saved = localStorage.getItem('aulagrade_assignments_data');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse saved assignments', e);
+      }
+    }
+    return INITIAL_ASSIGNMENTS;
+  });
+
+  const [scores, setScores] = useState<Record<string, Record<string, number>>>(() => {
+    const saved = localStorage.getItem('aulagrade_scores_data');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse saved scores', e);
+      }
+    }
+    return INITIAL_STUDENT_SCORES;
+  });
+
   // Sync groups to localStorage
   useEffect(() => {
     localStorage.setItem('aulagrade_groups_data', JSON.stringify(groups));
   }, [groups]);
+
+  // Sync assignments & scores to localStorage
+  useEffect(() => {
+    localStorage.setItem('aulagrade_assignments_data', JSON.stringify(assignments));
+  }, [assignments]);
+
+  useEffect(() => {
+    localStorage.setItem('aulagrade_scores_data', JSON.stringify(scores));
+  }, [scores]);
 
   // Global keyboard shortcut ⌘K
   useEffect(() => {
@@ -110,6 +145,10 @@ export default function App() {
                 setSelectedGroupId(g.id);
                 setActiveTab('criterios');
               }}
+              onSelectGroupForFinalGrades={(g) => {
+                setSelectedGroupId(g.id);
+                setActiveTab('calificaciones-finales');
+              }}
             />
           )}
 
@@ -119,6 +158,22 @@ export default function App() {
               selectedGroupId={selectedGroupId}
               onSelectGroup={(id) => setSelectedGroupId(id)}
               onOpenCreateGroup={() => setActiveTab('alta-grupo')}
+              assignments={assignments}
+              setAssignments={setAssignments}
+              scores={scores}
+              setScores={setScores}
+              onNavigateToFinalGrades={() => setActiveTab('calificaciones-finales')}
+            />
+          )}
+
+          {activeTab === 'calificaciones-finales' && (
+            <FinalGradesView
+              groups={groups}
+              selectedGroupId={selectedGroupId}
+              onSelectGroup={(id) => setSelectedGroupId(id)}
+              assignments={assignments}
+              scores={scores}
+              onNavigateToTab={(tab) => setActiveTab(tab)}
             />
           )}
 

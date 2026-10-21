@@ -12,6 +12,7 @@ interface DashboardViewProps {
   onSelectGroupForGrades: (group: Group) => void;
   onSelectGroupForAttendance: (group: Group) => void;
   onSelectGroupForCriteria: (group: Group) => void;
+  onSelectGroupForFinalGrades?: (group: Group) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -20,6 +21,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onSelectGroupForGrades,
   onSelectGroupForAttendance,
   onSelectGroupForCriteria,
+  onSelectGroupForFinalGrades,
 }) => {
   const [filterShift, setFilterShift] = useState<'Todos' | 'Matutino' | 'Vespertino' | 'Mixto'>('Todos');
   const [searchQuery, setSearchQuery] = useState('');
@@ -244,6 +246,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <span className="material-symbols-outlined text-base">how_to_reg</span>
                   <span>Asistencia</span>
                 </button>
+
+                {onSelectGroupForFinalGrades && (
+                  <button
+                    onClick={() => onSelectGroupForFinalGrades(group)}
+                    className="p-1.5 rounded-lg text-primary hover:bg-surface-container-high transition-colors cursor-pointer border border-primary/20"
+                    title="Ver Calificaciones Finales y Acta"
+                  >
+                    <span className="material-symbols-outlined text-base">workspace_premium</span>
+                  </button>
+                )}
 
                 <button
                   onClick={() => onSelectGroupForCriteria(group)}

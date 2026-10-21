@@ -5,12 +5,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { Group } from '../types';
+import { NavTab } from './Sidebar';
 
 interface SearchModalProps {
   isOpen: boolean;
   onClose: () => void;
   groups: Group[];
-  onSelectGroup: (groupId: string, tab: 'cuaderno' | 'asistencia' | 'criterios') => void;
+  onSelectGroup: (groupId: string, tab: NavTab) => void;
 }
 
 export const SearchModal: React.FC<SearchModalProps> = ({

@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Group, Student, SessionSchedule, WeekDay } from '../types';
+import { Group, Student, SessionSchedule, WeekDay, EvaluationStructure } from '../types';
 import { INITIAL_STUDENTS } from '../data/mockData';
 
 interface AltaGrupoViewProps {
@@ -22,7 +22,9 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
   const [subjectName, setSubjectName] = useState('Física Cuántica I');
   const [subjectCode, setSubjectCode] = useState('FIS-302');
   const [educationLevel, setEducationLevel] = useState('Licenciatura / Universidad');
-  const [semester, setSemester] = useState('3er Semestre');
+  const [gradeNumber, setGradeNumber] = useState('3');
+  const [periodType, setPeriodType] = useState('Semestre');
+  const semester = `${gradeNumber}° ${periodType}`;
   const [section, setSection] = useState<'Grupo A' | 'Grupo B' | 'Grupo C'>('Grupo A');
   const [shift, setShift] = useState<'Matutino' | 'Vespertino' | 'Mixto'>('Matutino');
   const [academicCycle] = useState('Ciclo 2024-2025 • P2');
@@ -43,6 +45,8 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
 
   // Criteria & Weights
   const [criteriaPreset, setCriteriaPreset] = useState<'aulagrade' | 'copy' | 'scratch'>('aulagrade');
+  const [evaluationStructure, setEvaluationStructure] = useState<EvaluationStructure>('parciales');
+  const [numberOfPeriods, setNumberOfPeriods] = useState<number>(3);
   const [weights, setWeights] = useState({
     homework: 35,
     exams: 20,
@@ -222,6 +226,8 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
       schedule: schedules,
       criteria: {
         preset: criteriaPreset,
+        evaluationStructure,
+        numberOfPeriods: Number(numberOfPeriods) || 3,
         weights,
         scale: gradeScale,
         minPassingGrade: Number(minPassingGrade) || 7.0
@@ -238,11 +244,15 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
       subjectName,
       subjectCode,
       educationLevel,
+      gradeNumber,
+      periodType,
       semester,
       section,
       shift,
       classroom,
       capacity,
+      evaluationStructure,
+      numberOfPeriods,
       weights,
       studentsCount: students.length
     }));
@@ -426,23 +436,45 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
                 </select>
               </div>
 
-              {/* Grado / Semestre */}
+              {/* Grado / Periodo */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-on-surface">Grado / Semestre</label>
-                <select 
-                  value={semester}
-                  onChange={(e) => setSemester(e.target.value)}
-                  className="w-full h-10 px-space-md bg-surface-container-lowest rounded-lg text-sm text-on-surface border border-[#CBD5E1] focus:border-secondary focus:ring-1 focus:ring-secondary focus:outline-none shadow-sm cursor-pointer"
-                >
-                  <option>1er Semestre</option>
-                  <option>2do Semestre</option>
-                  <option>3er Semestre</option>
-                  <option>4to Semestre</option>
-                  <option>5to Semestre</option>
-                  <option>6to Semestre</option>
-                  <option>7mo Semestre</option>
-                  <option>8vo Semestre</option>
-                </select>
+                <label className="text-xs font-semibold text-on-surface flex items-center justify-between">
+                  <span>Grado y Modalidad <span className="text-error">*</span></span>
+                  <span className="text-[11px] text-secondary font-mono-numeric font-semibold bg-surface-container-low px-1.5 py-0.5 rounded border border-[#E2E8F0]">
+                    {gradeNumber}° {periodType}
+                  </span>
+                </label>
+                <div className="grid grid-cols-2 gap-space-xs">
+                  {/* Selector de 1° a 6° */}
+                  <select 
+                    value={gradeNumber}
+                    onChange={(e) => setGradeNumber(e.target.value)}
+                    className="w-full h-10 px-2.5 bg-surface-container-lowest rounded-lg text-xs font-semibold text-on-surface border border-[#CBD5E1] focus:border-secondary focus:ring-1 focus:ring-secondary focus:outline-none shadow-sm cursor-pointer"
+                    title="Selecciona el grado (1° Primero a 6° Sexto)"
+                  >
+                    <option value="1">1° (Primero)</option>
+                    <option value="2">2° (Segundo)</option>
+                    <option value="3">3° (Tercero)</option>
+                    <option value="4">4° (Cuarto)</option>
+                    <option value="5">5° (Quinto)</option>
+                    <option value="6">6° (Sexto)</option>
+                  </select>
+
+                  {/* Selector de Modalidad / Periodicidad */}
+                  <select 
+                    value={periodType}
+                    onChange={(e) => setPeriodType(e.target.value)}
+                    className="w-full h-10 px-2.5 bg-surface-container-lowest rounded-lg text-xs font-semibold text-on-surface border border-[#CBD5E1] focus:border-secondary focus:ring-1 focus:ring-secondary focus:outline-none shadow-sm cursor-pointer"
+                    title="Selecciona si es Semestre, Cuatrimestre, Año Escolar, etc."
+                  >
+                    <option value="Semestre">Semestre</option>
+                    <option value="Cuatrimestre">Cuatrimestre</option>
+                    <option value="Año Escolar">Año Escolar</option>
+                    <option value="Trimestre">Trimestre</option>
+                    <option value="Bimestre">Bimestre</option>
+                    <option value="Módulo">Módulo</option>
+                  </select>
+                </div>
               </div>
 
               {/* Sección / Grupo */}
@@ -688,6 +720,70 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
               }`}>
                 <span className={`w-2 h-2 rounded-full ${totalWeight === 100 ? 'bg-secondary' : 'bg-red-600'}`}></span>
                 <span>Total: {totalWeight}% Ponderado</span>
+              </div>
+            </div>
+
+            {/* Modalidad de Cortes Evaluativos (Trimestre, Parcial, Bimestre, Periodo) */}
+            <div className="p-space-md bg-surface-container-low/70 rounded-xl border border-[#E2E8F0] flex flex-col gap-space-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-secondary text-lg">calendar_view_week</span>
+                  <div>
+                    <h3 className="text-xs font-bold text-on-surface">Estructura Temporal de Evaluación</h3>
+                    <p className="text-[11px] text-on-surface-variant">
+                      Define los cortes del ciclo: Trimestres (Secundaria y ciclo anual), Parciales (Preparatoria / Universidad), Bimestres o Periodos.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <span className="text-[11px] font-semibold text-on-surface-variant">Cortes:</span>
+                  <select
+                    value={numberOfPeriods}
+                    onChange={(e) => setNumberOfPeriods(Number(e.target.value))}
+                    className="h-8 px-2 bg-surface-container-lowest rounded-lg font-mono-numeric text-xs font-bold text-primary border border-[#CBD5E1] cursor-pointer"
+                  >
+                    <option value={2}>2 Cortes</option>
+                    <option value={3}>3 Cortes (Estándar)</option>
+                    <option value={4}>4 Cortes</option>
+                    <option value={5}>5 Cortes (Bimestral)</option>
+                    <option value={6}>6 Cortes</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Selector de opciones de cortes */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-space-xs pt-1">
+                {[
+                  { id: 'trimestres', label: 'Por Trimestre', desc: 'Secundaria / Ciclo', icon: 'view_week' },
+                  { id: 'parciales', label: 'Por Parciales', desc: 'Prepa / Universidad', icon: 'splitscreen' },
+                  { id: 'bimestres', label: 'Por Bimestre', desc: '5 Cortes bimestrales', icon: 'calendar_month' },
+                  { id: 'cuatrimestres', label: 'Por Cuatrimestre', desc: '3 Cuatrimestres', icon: 'view_quilt' },
+                  { id: 'periodos', label: 'Por Periodo / Bloque', desc: 'Módulos Flexibles', icon: 'event_repeat' },
+                  { id: 'ciclo_unico', label: 'Ciclo Continuo', desc: 'Sin cortes intermedios', icon: 'all_inclusive' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setEvaluationStructure(item.id as EvaluationStructure);
+                      if (item.id === 'bimestres') setNumberOfPeriods(5);
+                      else if (item.id === 'ciclo_unico') setNumberOfPeriods(1);
+                      else setNumberOfPeriods(3);
+                    }}
+                    className={`p-2 rounded-lg flex flex-col items-center text-center transition-all cursor-pointer border ${
+                      evaluationStructure === item.id
+                        ? 'bg-primary-container text-on-primary border-primary-container shadow-xs'
+                        : 'bg-surface-container-lowest text-on-surface border-[#E2E8F0] hover:bg-surface-container-high'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-base mb-0.5">{item.icon}</span>
+                    <span className="text-[11px] font-bold leading-tight">{item.label}</span>
+                    <span className={`text-[9px] mt-0.5 leading-none ${evaluationStructure === item.id ? 'text-on-primary-container' : 'text-outline'}`}>
+                      {item.desc}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
 

@@ -6,7 +6,7 @@
 import React from 'react';
 import { AULAGRADE_LOGO } from '../data/mockData';
 
-export type NavTab = 'dashboard' | 'alta-grupo' | 'cuaderno' | 'asistencia' | 'criterios';
+export type NavTab = 'dashboard' | 'alta-grupo' | 'cuaderno' | 'calificaciones-finales' | 'asistencia' | 'criterios';
 
 interface SidebarProps {
   activeTab: NavTab;
@@ -133,6 +133,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <span className="material-symbols-outlined text-lg">edit_note</span>
             <span>Cuaderno de Notas</span>
+          </button>
+
+          <button
+            onClick={() => onSelectTab('calificaciones-finales')}
+            className={`flex items-center gap-space-md px-space-md py-space-sm rounded-lg transition-colors text-sm ${
+              activeTab === 'calificaciones-finales'
+                ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
+                : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface font-medium'
+            }`}
+          >
+            <span className="material-symbols-outlined text-lg">workspace_premium</span>
+            <span>Calificaciones Finales</span>
           </button>
 
           <button

@@ -24,8 +24,12 @@ export interface SessionSchedule {
   sessionType: string;
 }
 
+export type EvaluationStructure = 'parciales' | 'trimestres' | 'bimestres' | 'cuatrimestres' | 'periodos' | 'ciclo_unico';
+
 export interface GradingCriteria {
   preset: 'aulagrade' | 'copy' | 'scratch';
+  evaluationStructure: EvaluationStructure;
+  numberOfPeriods: number; // e.g. 3 trimestres, 3 parciales, 5 bimestres
   weights: {
     homework: number;     // Trabajos (35%)
     exams: number;        // Exámenes (20%)
@@ -60,6 +64,7 @@ export interface AssignmentGrade {
   id: string;
   name: string;
   category: 'homework' | 'exams' | 'attendance' | 'participation' | 'selfEval';
+  periodIndex?: number; // 1, 2, 3...
   maxScore: number;
 }
 

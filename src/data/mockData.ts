@@ -83,6 +83,8 @@ export const INITIAL_GROUPS: Group[] = [
     ],
     criteria: {
       preset: 'aulagrade',
+      evaluationStructure: 'parciales',
+      numberOfPeriods: 3,
       weights: {
         homework: 35,
         exams: 20,
@@ -115,6 +117,8 @@ export const INITIAL_GROUPS: Group[] = [
     ],
     criteria: {
       preset: 'aulagrade',
+      evaluationStructure: 'parciales',
+      numberOfPeriods: 3,
       weights: {
         homework: 30,
         exams: 40,
@@ -132,8 +136,8 @@ export const INITIAL_GROUPS: Group[] = [
     id: 'grp-qui-104',
     name: 'Química General y Estequiometría',
     code: 'QUI-104',
-    educationLevel: 'Licenciatura / Universidad',
-    semester: '1er Semestre',
+    educationLevel: 'Secundaria / Bachillerato',
+    semester: '1° Año Escolar',
     section: 'Grupo A',
     shift: 'Vespertino',
     academicCycle: 'Ciclo 2024-2025 • P2',
@@ -147,6 +151,8 @@ export const INITIAL_GROUPS: Group[] = [
     ],
     criteria: {
       preset: 'aulagrade',
+      evaluationStructure: 'trimestres',
+      numberOfPeriods: 3,
       weights: {
         homework: 25,
         exams: 35,
@@ -163,68 +169,60 @@ export const INITIAL_GROUPS: Group[] = [
 ];
 
 export const INITIAL_ASSIGNMENTS: AssignmentGrade[] = [
-  { id: 'asg-1', name: 'T1: Ley de Radiación de Planck', category: 'homework', maxScore: 10 },
-  { id: 'asg-2', name: 'T2: Efecto Fotoeléctrico', category: 'homework', maxScore: 10 },
-  { id: 'asg-3', name: 'T3: Modelo Atómico de Bohr', category: 'homework', maxScore: 10 },
-  { id: 'asg-4', name: 'Examen Parcial 1', category: 'exams', maxScore: 10 },
-  { id: 'asg-5', name: 'Asistencia y Puntualidad', category: 'attendance', maxScore: 10 },
-  { id: 'asg-6', name: 'Participación y Seminario', category: 'participation', maxScore: 10 },
-  { id: 'asg-7', name: 'Autoevaluación Formativa', category: 'selfEval', maxScore: 10 },
+  // Periodo 1 / 1er Trimestre
+  { id: 'asg-1', name: 'T1: Ley de Planck', category: 'homework', periodIndex: 1, maxScore: 10 },
+  { id: 'asg-2', name: 'T2: Efecto Fotoeléctrico', category: 'homework', periodIndex: 1, maxScore: 10 },
+  { id: 'asg-3', name: 'Examen 1er Corte', category: 'exams', periodIndex: 1, maxScore: 10 },
+  { id: 'asg-4', name: 'Asistencia P1', category: 'attendance', periodIndex: 1, maxScore: 10 },
+  { id: 'asg-5', name: 'Participación P1', category: 'participation', periodIndex: 1, maxScore: 10 },
+  { id: 'asg-6', name: 'Autoeval. P1', category: 'selfEval', periodIndex: 1, maxScore: 10 },
+
+  // Periodo 2 / 2do Trimestre
+  { id: 'asg-7', name: 'T3: Modelo de Bohr', category: 'homework', periodIndex: 2, maxScore: 10 },
+  { id: 'asg-8', name: 'T4: Indeterminación', category: 'homework', periodIndex: 2, maxScore: 10 },
+  { id: 'asg-9', name: 'Examen 2do Corte', category: 'exams', periodIndex: 2, maxScore: 10 },
+  { id: 'asg-10', name: 'Asistencia P2', category: 'attendance', periodIndex: 2, maxScore: 10 },
+  { id: 'asg-11', name: 'Participación P2', category: 'participation', periodIndex: 2, maxScore: 10 },
+  { id: 'asg-12', name: 'Autoeval. P2', category: 'selfEval', periodIndex: 2, maxScore: 10 },
+
+  // Periodo 3 / 3er Trimestre
+  { id: 'asg-13', name: 'T5: Ec. Schrödinger', category: 'homework', periodIndex: 3, maxScore: 10 },
+  { id: 'asg-14', name: 'Proyecto Laboratorio', category: 'homework', periodIndex: 3, maxScore: 10 },
+  { id: 'asg-15', name: 'Examen Departamental', category: 'exams', periodIndex: 3, maxScore: 10 },
+  { id: 'asg-16', name: 'Asistencia P3', category: 'attendance', periodIndex: 3, maxScore: 10 },
+  { id: 'asg-17', name: 'Participación P3', category: 'participation', periodIndex: 3, maxScore: 10 },
+  { id: 'asg-18', name: 'Autoeval. P3', category: 'selfEval', periodIndex: 3, maxScore: 10 },
 ];
 
 export const INITIAL_STUDENT_SCORES: Record<string, Record<string, number>> = {
   'std-1': {
-    'asg-1': 9.5,
-    'asg-2': 9.8,
-    'asg-3': 10.0,
-    'asg-4': 9.0,
-    'asg-5': 10.0,
-    'asg-6': 9.5,
-    'asg-7': 9.0,
+    'asg-1': 9.5, 'asg-2': 9.8, 'asg-3': 9.2, 'asg-4': 10.0, 'asg-5': 9.5, 'asg-6': 9.0,
+    'asg-7': 9.0, 'asg-8': 9.5, 'asg-9': 9.0, 'asg-10': 9.8, 'asg-11': 9.0, 'asg-12': 9.5,
+    'asg-13': 9.8, 'asg-14': 9.5, 'asg-15': 9.2, 'asg-16': 10.0, 'asg-17': 9.5, 'asg-18': 9.0,
   },
   'std-2': {
-    'asg-1': 8.0,
-    'asg-2': 8.5,
-    'asg-3': 7.5,
-    'asg-4': 7.0,
-    'asg-5': 9.0,
-    'asg-6': 8.0,
-    'asg-7': 8.5,
+    'asg-1': 8.0, 'asg-2': 8.5, 'asg-3': 7.5, 'asg-4': 9.0, 'asg-5': 8.0, 'asg-6': 8.5,
+    'asg-7': 8.2, 'asg-8': 8.0, 'asg-9': 7.0, 'asg-10': 8.5, 'asg-11': 8.0, 'asg-12': 8.0,
+    'asg-13': 8.5, 'asg-14': 8.0, 'asg-15': 7.8, 'asg-16': 9.0, 'asg-17': 8.5, 'asg-18': 8.0,
   },
   'std-3': {
-    'asg-1': 8.8,
-    'asg-2': 9.0,
-    'asg-3': 8.5,
-    'asg-4': 8.2,
-    'asg-5': 9.5,
-    'asg-6': 9.0,
-    'asg-7': 9.5,
+    'asg-1': 8.8, 'asg-2': 9.0, 'asg-3': 8.5, 'asg-4': 9.5, 'asg-5': 9.0, 'asg-6': 9.5,
+    'asg-7': 9.0, 'asg-8': 8.8, 'asg-9': 8.2, 'asg-10': 9.0, 'asg-11': 8.5, 'asg-12': 9.0,
+    'asg-13': 8.8, 'asg-14': 9.2, 'asg-15': 8.6, 'asg-16': 9.5, 'asg-17': 9.0, 'asg-18': 9.2,
   },
   'std-4': {
-    'asg-1': 6.5,
-    'asg-2': 6.0,
-    'asg-3': 7.0,
-    'asg-4': 6.2,
-    'asg-5': 7.5,
-    'asg-6': 7.0,
-    'asg-7': 7.0,
+    'asg-1': 6.5, 'asg-2': 6.0, 'asg-3': 6.2, 'asg-4': 7.5, 'asg-5': 7.0, 'asg-6': 7.0,
+    'asg-7': 6.0, 'asg-8': 6.5, 'asg-9': 5.8, 'asg-10': 7.0, 'asg-11': 6.5, 'asg-12': 6.5,
+    'asg-13': 6.8, 'asg-14': 6.5, 'asg-15': 6.0, 'asg-16': 7.5, 'asg-17': 7.0, 'asg-18': 6.5,
   },
   'std-5': {
-    'asg-1': 9.0,
-    'asg-2': 9.2,
-    'asg-3': 9.0,
-    'asg-4': 8.8,
-    'asg-5': 9.0,
-    'asg-6': 8.5,
-    'asg-7': 9.0,
+    'asg-1': 9.0, 'asg-2': 9.2, 'asg-3': 8.8, 'asg-4': 9.0, 'asg-5': 8.5, 'asg-6': 9.0,
+    'asg-7': 8.8, 'asg-8': 9.0, 'asg-9': 8.5, 'asg-10': 9.0, 'asg-11': 9.0, 'asg-12': 8.5,
+    'asg-13': 9.2, 'asg-14': 9.0, 'asg-15': 9.0, 'asg-16': 9.5, 'asg-17': 9.0, 'asg-18': 9.0,
   },
   'std-6': {
-    'asg-1': 5.5,
-    'asg-2': 5.0,
-    'asg-3': 6.0,
-    'asg-4': 5.2,
-    'asg-5': 6.0,
-    'asg-6': 6.0,
-    'asg-7': 6.5,
+    'asg-1': 5.5, 'asg-2': 5.0, 'asg-3': 5.2, 'asg-4': 6.0, 'asg-5': 6.0, 'asg-6': 6.5,
+    'asg-7': 5.8, 'asg-8': 5.5, 'asg-9': 5.0, 'asg-10': 6.0, 'asg-11': 5.5, 'asg-12': 6.0,
+    'asg-13': 6.0, 'asg-14': 5.8, 'asg-15': 5.2, 'asg-16': 6.5, 'asg-17': 6.0, 'asg-18': 6.0,
   }
 };
