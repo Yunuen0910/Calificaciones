@@ -19,7 +19,7 @@ import { HelpModal } from './components/HelpModal';
 import { SuccessCreatedModal } from './components/SuccessCreatedModal';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<NavTab>('alta-grupo'); // Default to the main screen requested in prompt & screenshot!
+  const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [groups, setGroups] = useState<Group[]>(() => {
     const saved = localStorage.getItem('aulagrade_groups_data');
     if (saved) {

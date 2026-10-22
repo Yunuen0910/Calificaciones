@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <title>AulaGrade - Redireccionando...</title>
+    <script>
+      // Single Page App redirect for GitHub Pages
+      sessionStorage.redirect = location.href;
+      var path = window.location.pathname;
+      var repoBase = path.split('/')[1] || '';
+      if (repoBase && !repoBase.includes('.')) {
+        window.location.replace('/' + repoBase + '/');
+      } else {
+        window.location.replace('/');
+      }
+    </script>
+  </head>
+  <body>
+    <p>Redirigiendo a AulaGrade...</p>
+  </body>
+</html>

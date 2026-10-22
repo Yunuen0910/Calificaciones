@@ -99,6 +99,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Navigation Items */}
         <nav className="flex flex-col gap-space-xs px-space-md mt-space-sm">
+          {/* 1. Dashboard de Grupos */}
           <button
             onClick={() => onSelectTab('dashboard')}
             className={`flex items-center gap-space-md px-space-md py-space-sm rounded-lg transition-colors text-sm ${
@@ -108,9 +109,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             }`}
           >
             <span className="material-symbols-outlined text-lg">dashboard</span>
-            <span>Dashboard de Grupos</span>
+            <span>Dashboard</span>
           </button>
 
+          {/* 2. Alta Nuevo Grupo */}
           <button
             onClick={() => onSelectTab('alta-grupo')}
             className={`flex items-center gap-space-md px-space-md py-space-sm rounded-lg transition-colors text-sm ${
@@ -119,22 +121,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface font-medium'
             }`}
           >
-            <span className="material-symbols-outlined text-lg">add_box</span>
-            <span>Alta de Nuevo Grupo</span>
+            <span className="material-symbols-outlined text-lg">group_add</span>
+            <span>Alta Nuevo Grupo</span>
           </button>
 
+          {/* 3. Criterios de Evaluación */}
           <button
-            onClick={() => onSelectTab('cuaderno')}
+            onClick={() => onSelectTab('criterios')}
             className={`flex items-center gap-space-md px-space-md py-space-sm rounded-lg transition-colors text-sm ${
-              activeTab === 'cuaderno'
+              activeTab === 'criterios'
                 ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
                 : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface font-medium'
             }`}
           >
-            <span className="material-symbols-outlined text-lg">edit_note</span>
-            <span>Cuaderno de Notas</span>
+            <span className="material-symbols-outlined text-lg">tune</span>
+            <span>Criterios de Evaluación</span>
           </button>
 
+          {/* 4. Calificaciones Finales */}
           <button
             onClick={() => onSelectTab('calificaciones-finales')}
             className={`flex items-center gap-space-md px-space-md py-space-sm rounded-lg transition-colors text-sm ${
@@ -147,6 +151,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span>Calificaciones Finales</span>
           </button>
 
+          {/* 5. Cuaderno de Notas */}
+          <button
+            onClick={() => onSelectTab('cuaderno')}
+            className={`flex items-center gap-space-md px-space-md py-space-sm rounded-lg transition-colors text-sm ${
+              activeTab === 'cuaderno'
+                ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
+                : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface font-medium'
+            }`}
+          >
+            <span className="material-symbols-outlined text-lg">edit_note</span>
+            <span>Cuaderno de Notas</span>
+          </button>
+
+          {/* 6. Pase de Lista */}
           <button
             onClick={() => onSelectTab('asistencia')}
             className={`flex items-center gap-space-md px-space-md py-space-sm rounded-lg transition-colors text-sm ${
@@ -157,18 +175,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <span className="material-symbols-outlined text-lg">how_to_reg</span>
             <span>Pase de Lista</span>
-          </button>
-
-          <button
-            onClick={() => onSelectTab('criterios')}
-            className={`flex items-center gap-space-md px-space-md py-space-sm rounded-lg transition-colors text-sm ${
-              activeTab === 'criterios'
-                ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
-                : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface font-medium'
-            }`}
-          >
-            <span className="material-symbols-outlined text-lg">rule</span>
-            <span>Criterios de Evaluación</span>
           </button>
         </nav>
       </div>
