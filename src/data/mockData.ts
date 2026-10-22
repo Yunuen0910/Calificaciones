@@ -3,11 +3,80 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Group, Student, AssignmentGrade } from '../types';
+import { Group, Student, AssignmentGrade, User, AcademicCycle } from '../types';
 
 export const AULAGRADE_LOGO = "https://lh3.googleusercontent.com/aida-public/AB6AXuBrDJzot0Zq1QzBsl3LvbdrD1P09b6q7vCqucMfQ3jEC-GSeneZrgp8YuVo0Ydi5tcWF3kyBvLoehp83-YOPP8jeg4KLDoGnaClRyhVuYVmXkdsW3Qn4CtQRXEuRh3uoYsy1AJfn-OewCxxxAUf82YvzbySNbV9UgxcuTHcZeZaOQmkDPy8cCNJTiMXP3id_qe-eR5SxCkIXWRMsHMlek7cyMd9YLUY2-quAYlPdM8TQcL57zvAhPw9fQ";
 
 export const PROF_AVATAR = "https://lh3.googleusercontent.com/aida-public/AB6AXuCA9XgciCHMAqtXZ1RNKG3bbZ91L1NHuLFe6O4y-U9wNHwon8rCRaUC2I3K8ZCW90e7uN02bnb0hhoz8au5kp09WzbW4vvgsP7IisEGNyvXPn2p3g3bTOrMtQdBQsrFKb5HsOoNptRS9Qr58HRkdxSCv0cSC50QJDFQG04wQXvsWbJ3JeZVcuGGZYVXkFZLSrja8KG4dIJNafb1DPoJT3MPLPXiq8I4ZRACmrodTskuLUf6oTeaQRKRFQ";
+
+export const INITIAL_CYCLES: AcademicCycle[] = [
+  {
+    id: 'cycle-2024-2025-p2',
+    name: 'Ciclo 2024-2025 • P2',
+    code: '2024-2025-P2',
+    startDate: '2025-01-15',
+    endDate: '2025-06-30',
+    status: 'active',
+    isDefault: true,
+    periodStructure: 'parciales',
+    periodsCount: 3,
+  },
+  {
+    id: 'cycle-2024-2025-p1',
+    name: 'Ciclo 2024-2025 • P1',
+    code: '2024-2025-P1',
+    startDate: '2024-08-15',
+    endDate: '2024-12-20',
+    status: 'closed',
+    isDefault: false,
+    periodStructure: 'parciales',
+    periodsCount: 3,
+  },
+  {
+    id: 'cycle-2025-2026-p1',
+    name: 'Ciclo 2025-2026 • P1',
+    code: '2025-2026-P1',
+    startDate: '2025-08-18',
+    endDate: '2025-12-19',
+    status: 'upcoming',
+    isDefault: false,
+    periodStructure: 'parciales',
+    periodsCount: 3,
+  }
+];
+
+export const INITIAL_USERS: User[] = [
+  {
+    id: 'usr-admin-1',
+    name: 'Administrador del Sistema',
+    email: 'admin@escuela.edu',
+    password: '123456',
+    role: 'admin',
+    department: 'Dirección Académica y TI',
+    createdAt: '2025-01-01T00:00:00Z',
+  },
+  {
+    id: 'usr-prof-1',
+    name: 'Prof. Carlos Mendoza',
+    email: 'c.mendoza@aulagrade.edu',
+    password: 'docente123',
+    role: 'teacher',
+    department: 'Departamento de Ciencias Exactas',
+    avatarUrl: PROF_AVATAR,
+    assignedGroupIds: ['grp-fis-302', 'grp-mat-201'],
+    createdAt: '2025-01-05T00:00:00Z',
+  },
+  {
+    id: 'usr-prof-2',
+    name: 'Profra. Marcela Hernández',
+    email: 'm.hernandez@aulagrade.edu',
+    password: 'docente123',
+    role: 'teacher',
+    department: 'Departamento de Ciencias Naturales',
+    assignedGroupIds: ['grp-qui-104'],
+    createdAt: '2025-01-10T00:00:00Z',
+  }
+];
 
 export const INITIAL_STUDENTS: Student[] = [
   {
@@ -70,6 +139,9 @@ export const INITIAL_GROUPS: Group[] = [
     section: 'Grupo A',
     shift: 'Matutino',
     academicCycle: 'Ciclo 2024-2025 • P2',
+    cycleId: 'cycle-2024-2025-p2',
+    teacherId: 'usr-prof-1',
+    teacherName: 'Prof. Carlos Mendoza',
     classroom: 'Edificio B - Aula 204',
     capacity: 35,
     syncCalendar: true,
@@ -107,6 +179,9 @@ export const INITIAL_GROUPS: Group[] = [
     section: 'Grupo B',
     shift: 'Matutino',
     academicCycle: 'Ciclo 2024-2025 • P2',
+    cycleId: 'cycle-2024-2025-p2',
+    teacherId: 'usr-prof-1',
+    teacherName: 'Prof. Carlos Mendoza',
     classroom: 'Edificio A - Aula 102',
     capacity: 40,
     syncCalendar: true,
@@ -141,6 +216,9 @@ export const INITIAL_GROUPS: Group[] = [
     section: 'Grupo A',
     shift: 'Vespertino',
     academicCycle: 'Ciclo 2024-2025 • P2',
+    cycleId: 'cycle-2024-2025-p2',
+    teacherId: 'usr-prof-2',
+    teacherName: 'Profra. Marcela Hernández',
     classroom: 'Laboratorio Central Lab-2',
     capacity: 30,
     syncCalendar: true,

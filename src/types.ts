@@ -3,6 +3,32 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+export type UserRole = 'admin' | 'teacher';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  role: UserRole;
+  avatarUrl?: string;
+  department?: string;
+  assignedGroupIds?: string[];
+  createdAt: string;
+}
+
+export interface AcademicCycle {
+  id: string;
+  name: string;
+  code: string;
+  startDate: string;
+  endDate: string;
+  status: 'active' | 'closed' | 'upcoming';
+  isDefault?: boolean;
+  periodStructure: EvaluationStructure;
+  periodsCount: number;
+}
+
 export interface Student {
   id: string;
   matricula: string;
@@ -50,6 +76,9 @@ export interface Group {
   section: 'Grupo A' | 'Grupo B' | 'Grupo C';
   shift: 'Matutino' | 'Vespertino' | 'Mixto';
   academicCycle: string;
+  cycleId?: string;
+  teacherId?: string;
+  teacherName?: string;
   classroom: string;
   capacity: number;
   syncCalendar: boolean;
@@ -81,3 +110,4 @@ export interface AttendanceRecord {
   timestamp?: string;
   notes?: string;
 }
+

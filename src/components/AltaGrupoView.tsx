@@ -4,19 +4,25 @@
  */
 
 import React, { useState } from 'react';
-import { Group, Student, SessionSchedule, WeekDay, EvaluationStructure } from '../types';
+import { Group, Student, SessionSchedule, WeekDay, EvaluationStructure, AcademicCycle, User } from '../types';
 import { INITIAL_STUDENTS } from '../data/mockData';
 
 interface AltaGrupoViewProps {
   onCancel: () => void;
   onGroupCreated: (newGroup: Group) => void;
   existingGroups: Group[];
+  activeCycle?: string;
+  cycles?: AcademicCycle[];
+  currentUser?: User | null;
 }
 
 export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
   onCancel,
   onGroupCreated,
   existingGroups,
+  activeCycle = 'Ciclo 2024-2025 • P2',
+  cycles = [],
+  currentUser = null,
 }) => {
   // Form State
   const [subjectName, setSubjectName] = useState('Física Cuántica I');
@@ -27,7 +33,7 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
   const semester = `${gradeNumber}° ${periodType}`;
   const [section, setSection] = useState<'Grupo A' | 'Grupo B' | 'Grupo C'>('Grupo A');
   const [shift, setShift] = useState<'Matutino' | 'Vespertino' | 'Mixto'>('Matutino');
-  const [academicCycle] = useState('Ciclo 2024-2025 • P2');
+  const [academicCycle, setAcademicCycle] = useState(activeCycle);
   const [classroom, setClassroom] = useState('Edificio B - Aula 204');
   const [capacity, setCapacity] = useState(35);
 
@@ -210,6 +216,7 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
 
   // Final submit: Create and activate group
   const handleCreateGroup = () => {
+    const cycleObj = cycles.find(c => c.name === academicCycle);
     const newGroup: Group = {
       id: `grp-${subjectCode.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Date.now()}`,
       name: subjectName.trim() || 'Nueva Asignatura',
@@ -219,6 +226,9 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
       section,
       shift,
       academicCycle,
+      cycleId: cycleObj?.id,
+      teacherId: currentUser?.id,
+      teacherName: currentUser?.name,
       classroom: classroom.trim() || 'Aula General',
       capacity: Number(capacity) || 35,
       syncCalendar,
@@ -519,13 +529,30 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
                 </div>
               </div>
 
-              {/* Ciclo Escolar Activo */}
+              {/* Ciclo Escolar */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-on-surface">Ciclo Escolar y Periodo</label>
-                <div className="h-10 px-space-md bg-surface-container-low rounded-lg flex items-center justify-between text-on-surface text-sm border border-[#E2E8F0]">
-                  <span className="font-semibold text-xs">{academicCycle}</span>
-                  <span className="material-symbols-outlined text-outline text-base" title="Periodo institucional bloqueado">lock</span>
-                </div>
+                <label className="text-xs font-semibold text-on-surface flex items-center justify-between">
+                  <span>Ciclo Escolar y Periodo</span>
+                  <span className="text-[10px] text-primary font-bold">Configuración</span>
+                </label>
+                {cycles.length > 0 ? (
+                  <select
+                    value={academicCycle}
+                    onChange={(e) => setAcademicCycle(e.target.value)}
+                    className="w-full h-10 px-3 bg-surface-container-lowest rounded-lg text-xs font-semibold text-on-surface border border-[#CBD5E1] focus:border-secondary focus:ring-1 focus:ring-secondary focus:outline-none shadow-sm cursor-pointer"
+                  >
+                    {cycles.map((c) => (
+                      <option key={c.id} value={c.name}>
+                        {c.name} {c.status === 'active' ? '(Activo)' : c.status === 'upcoming' ? '(Próximo)' : '(Concluido)'}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="h-10 px-space-md bg-surface-container-low rounded-lg flex items-center justify-between text-on-surface text-sm border border-[#E2E8F0]">
+                    <span className="font-semibold text-xs">{academicCycle}</span>
+                    <span className="material-symbols-outlined text-outline text-base">event</span>
+                  </div>
+                )}
               </div>
 
               {/* Aula Física / Laboratorio */}

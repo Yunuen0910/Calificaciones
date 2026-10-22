@@ -1,0 +1,6 @@
+{
+  "summary":  "Plan de implementación para la pantalla de inicio de sesión con roles (Administrador y Docentes), gestión de ciclos escolares, filtrado de materias por profesor y periodo escolar, con persistencia local y soporte para exportar/importar datos.",
+  "updatedAt":  "2026-10-22T14:55:42.320439955Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}
