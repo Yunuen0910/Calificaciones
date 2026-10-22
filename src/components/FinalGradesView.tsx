@@ -69,10 +69,16 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
     }
   };
 
+  // Filter assignments strictly for currentGroup
+  const groupAssignments = assignments.filter((a) => {
+    if (a.groupId) return a.groupId === currentGroup.id;
+    return currentGroup.id === 'grp-fis-302';
+  });
+
   // Calculate student average for a specific period
   const calculatePeriodAverage = (studentId: string, periodIdx: number) => {
     const studentScores = scores[studentId] || {};
-    const periodAssignments = assignments.filter(a => a.periodIndex === periodIdx);
+    const periodAssignments = groupAssignments.filter(a => a.periodIndex === periodIdx);
     if (periodAssignments.length === 0) return 10.0;
 
     const getCatPeriodAvg = (category: 'homework' | 'exams' | 'attendance' | 'participation' | 'selfEval') => {
@@ -109,7 +115,7 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
   // Calculate cumulative criterion average across entire course
   const calculateCriterionCumulative = (studentId: string, category: 'homework' | 'exams' | 'attendance' | 'participation' | 'selfEval') => {
     const studentScores = scores[studentId] || {};
-    const catAssignments = assignments.filter(a => a.category === category);
+    const catAssignments = groupAssignments.filter(a => a.category === category);
     if (catAssignments.length === 0) return 10.0;
     let sum = 0;
     let count = 0;

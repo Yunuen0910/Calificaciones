@@ -91,6 +91,7 @@ export interface Group {
 
 export interface AssignmentGrade {
   id: string;
+  groupId?: string; // Group ID to which this assignment belongs
   name: string;
   category: 'homework' | 'exams' | 'attendance' | 'participation' | 'selfEval';
   periodIndex?: number; // 1, 2, 3...

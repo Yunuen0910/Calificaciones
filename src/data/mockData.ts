@@ -248,28 +248,28 @@ export const INITIAL_GROUPS: Group[] = [
 
 export const INITIAL_ASSIGNMENTS: AssignmentGrade[] = [
   // Periodo 1 / 1er Trimestre
-  { id: 'asg-1', name: 'T1: Ley de Planck', category: 'homework', periodIndex: 1, maxScore: 10 },
-  { id: 'asg-2', name: 'T2: Efecto Fotoeléctrico', category: 'homework', periodIndex: 1, maxScore: 10 },
-  { id: 'asg-3', name: 'Examen 1er Corte', category: 'exams', periodIndex: 1, maxScore: 10 },
-  { id: 'asg-4', name: 'Asistencia P1', category: 'attendance', periodIndex: 1, maxScore: 10 },
-  { id: 'asg-5', name: 'Participación P1', category: 'participation', periodIndex: 1, maxScore: 10 },
-  { id: 'asg-6', name: 'Autoeval. P1', category: 'selfEval', periodIndex: 1, maxScore: 10 },
+  { id: 'asg-1', groupId: 'grp-fis-302', name: 'T1: Ley de Planck', category: 'homework', periodIndex: 1, maxScore: 10 },
+  { id: 'asg-2', groupId: 'grp-fis-302', name: 'T2: Efecto Fotoeléctrico', category: 'homework', periodIndex: 1, maxScore: 10 },
+  { id: 'asg-3', groupId: 'grp-fis-302', name: 'Examen 1er Corte', category: 'exams', periodIndex: 1, maxScore: 10 },
+  { id: 'asg-4', groupId: 'grp-fis-302', name: 'Asistencia P1', category: 'attendance', periodIndex: 1, maxScore: 10 },
+  { id: 'asg-5', groupId: 'grp-fis-302', name: 'Participación P1', category: 'participation', periodIndex: 1, maxScore: 10 },
+  { id: 'asg-6', groupId: 'grp-fis-302', name: 'Autoeval. P1', category: 'selfEval', periodIndex: 1, maxScore: 10 },
 
   // Periodo 2 / 2do Trimestre
-  { id: 'asg-7', name: 'T3: Modelo de Bohr', category: 'homework', periodIndex: 2, maxScore: 10 },
-  { id: 'asg-8', name: 'T4: Indeterminación', category: 'homework', periodIndex: 2, maxScore: 10 },
-  { id: 'asg-9', name: 'Examen 2do Corte', category: 'exams', periodIndex: 2, maxScore: 10 },
-  { id: 'asg-10', name: 'Asistencia P2', category: 'attendance', periodIndex: 2, maxScore: 10 },
-  { id: 'asg-11', name: 'Participación P2', category: 'participation', periodIndex: 2, maxScore: 10 },
-  { id: 'asg-12', name: 'Autoeval. P2', category: 'selfEval', periodIndex: 2, maxScore: 10 },
+  { id: 'asg-7', groupId: 'grp-fis-302', name: 'T3: Modelo de Bohr', category: 'homework', periodIndex: 2, maxScore: 10 },
+  { id: 'asg-8', groupId: 'grp-fis-302', name: 'T4: Indeterminación', category: 'homework', periodIndex: 2, maxScore: 10 },
+  { id: 'asg-9', groupId: 'grp-fis-302', name: 'Examen 2do Corte', category: 'exams', periodIndex: 2, maxScore: 10 },
+  { id: 'asg-10', groupId: 'grp-fis-302', name: 'Asistencia P2', category: 'attendance', periodIndex: 2, maxScore: 10 },
+  { id: 'asg-11', groupId: 'grp-fis-302', name: 'Participación P2', category: 'participation', periodIndex: 2, maxScore: 10 },
+  { id: 'asg-12', groupId: 'grp-fis-302', name: 'Autoeval. P2', category: 'selfEval', periodIndex: 2, maxScore: 10 },
 
   // Periodo 3 / 3er Trimestre
-  { id: 'asg-13', name: 'T5: Ec. Schrödinger', category: 'homework', periodIndex: 3, maxScore: 10 },
-  { id: 'asg-14', name: 'Proyecto Laboratorio', category: 'homework', periodIndex: 3, maxScore: 10 },
-  { id: 'asg-15', name: 'Examen Departamental', category: 'exams', periodIndex: 3, maxScore: 10 },
-  { id: 'asg-16', name: 'Asistencia P3', category: 'attendance', periodIndex: 3, maxScore: 10 },
-  { id: 'asg-17', name: 'Participación P3', category: 'participation', periodIndex: 3, maxScore: 10 },
-  { id: 'asg-18', name: 'Autoeval. P3', category: 'selfEval', periodIndex: 3, maxScore: 10 },
+  { id: 'asg-13', groupId: 'grp-fis-302', name: 'T5: Ec. Schrödinger', category: 'homework', periodIndex: 3, maxScore: 10 },
+  { id: 'asg-14', groupId: 'grp-fis-302', name: 'Proyecto Laboratorio', category: 'homework', periodIndex: 3, maxScore: 10 },
+  { id: 'asg-15', groupId: 'grp-fis-302', name: 'Examen Departamental', category: 'exams', periodIndex: 3, maxScore: 10 },
+  { id: 'asg-16', groupId: 'grp-fis-302', name: 'Asistencia P3', category: 'attendance', periodIndex: 3, maxScore: 10 },
+  { id: 'asg-17', groupId: 'grp-fis-302', name: 'Participación P3', category: 'participation', periodIndex: 3, maxScore: 10 },
+  { id: 'asg-18', groupId: 'grp-fis-302', name: 'Autoeval. P3', category: 'selfEval', periodIndex: 3, maxScore: 10 },
 ];
 
 export const INITIAL_STUDENT_SCORES: Record<string, Record<string, number>> = {

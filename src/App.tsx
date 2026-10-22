@@ -178,13 +178,12 @@ export default function App() {
 
     let filtered = groups;
 
-    // Filter by teacher role if teacher
+    // Filter by teacher role if teacher: strictly isolate to only groups belonging to this teacher
     if (currentUser.role === 'teacher') {
       filtered = filtered.filter(
         (g) =>
           g.teacherId === currentUser.id ||
-          !g.teacherId ||
-          currentUser.assignedGroupIds?.includes(g.id)
+          Boolean(currentUser.assignedGroupIds && currentUser.assignedGroupIds.includes(g.id))
       );
     }
 
@@ -205,6 +204,8 @@ export default function App() {
       if (!exists) {
         setSelectedGroupId(visibleGroups[0].id);
       }
+    } else {
+      setSelectedGroupId('');
     }
   }, [visibleGroups, selectedGroupId]);
 
@@ -239,12 +240,47 @@ export default function App() {
   // Admin user operations
   const handleAddUser = (newUser: User) => {
     setUsers((prev) => [newUser, ...prev]);
+    if (newUser.role === 'teacher' && newUser.assignedGroupIds && newUser.assignedGroupIds.length > 0) {
+      setGroups((prevGroups) =>
+        prevGroups.map((g) => {
+          if (newUser.assignedGroupIds?.includes(g.id)) {
+            return {
+              ...g,
+              teacherId: newUser.id,
+              teacherName: newUser.name,
+            };
+          }
+          return g;
+        })
+      );
+    }
   };
 
   const handleUpdateUser = (updatedUser: User) => {
     setUsers((prev) =>
       prev.map((u) => (u.id === updatedUser.id ? updatedUser : u))
     );
+    if (updatedUser.role === 'teacher') {
+      setGroups((prevGroups) =>
+        prevGroups.map((g) => {
+          const isAssigned = updatedUser.assignedGroupIds?.includes(g.id);
+          if (isAssigned) {
+            return {
+              ...g,
+              teacherId: updatedUser.id,
+              teacherName: updatedUser.name,
+            };
+          } else if (g.teacherId === updatedUser.id) {
+            return {
+              ...g,
+              teacherId: undefined,
+              teacherName: undefined,
+            };
+          }
+          return g;
+        })
+      );
+    }
     if (currentUser?.id === updatedUser.id) {
       setCurrentUser(updatedUser);
     }
@@ -252,6 +288,48 @@ export default function App() {
 
   const handleDeleteUser = (userId: string) => {
     setUsers((prev) => prev.filter((u) => u.id !== userId));
+    // Clear teacher from groups
+    setGroups((prev) =>
+      prev.map((g) =>
+        g.teacherId === userId
+          ? { ...g, teacherId: undefined, teacherName: undefined }
+          : g
+      )
+    );
+  };
+
+  const handleUpdateGroupTeacher = (groupId: string, teacherId: string | undefined) => {
+    const teacher = users.find((u) => u.id === teacherId);
+    setGroups((prev) =>
+      prev.map((g) =>
+        g.id === groupId
+          ? {
+              ...g,
+              teacherId: teacher ? teacher.id : undefined,
+              teacherName: teacher ? teacher.name : undefined,
+            }
+          : g
+      )
+    );
+    setUsers((prev) =>
+      prev.map((u) => {
+        if (teacherId && u.id === teacherId) {
+          const currentAssigned = u.assignedGroupIds || [];
+          return {
+            ...u,
+            assignedGroupIds: currentAssigned.includes(groupId)
+              ? currentAssigned
+              : [...currentAssigned, groupId],
+          };
+        } else if (u.assignedGroupIds?.includes(groupId)) {
+          return {
+            ...u,
+            assignedGroupIds: u.assignedGroupIds.filter((id) => id !== groupId),
+          };
+        }
+        return u;
+      })
+    );
   };
 
   // Admin cycle operations
@@ -422,6 +500,7 @@ export default function App() {
               onExportBackup={handleExportBackup}
               onImportBackup={handleImportBackup}
               onResetDatabase={handleResetDatabase}
+              onUpdateGroupTeacher={handleUpdateGroupTeacher}
             />
           )}
 

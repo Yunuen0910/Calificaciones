@@ -148,8 +148,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Groups Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-space-lg">
+      {/* Groups Grid or Empty State */}
+      {groups.length === 0 ? (
+        <div className="bg-surface-container-lowest rounded-2xl border-2 border-dashed border-[#CBD5E1] p-12 text-center flex flex-col items-center justify-center my-6">
+          <div className="w-16 h-16 rounded-2xl bg-blue-50 text-primary flex items-center justify-center mb-4">
+            <span className="material-symbols-outlined text-3xl">school</span>
+          </div>
+          <h3 className="text-lg font-bold text-on-surface">No tienes grupos ni materias asignadas</h3>
+          <p className="text-xs text-on-surface-variant max-w-md mt-1 leading-relaxed">
+            Tu cuenta docente está activa pero aún no tiene asignaturas asignadas en este ciclo escolar. Puedes crear tu primera materia ahora mismo o solicitar al administrador escolar que vincule tus grupos.
+          </p>
+          <button
+            onClick={onOpenCreateGroup}
+            className="mt-6 px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-container transition-all flex items-center gap-2 shadow-md cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-base">add_circle</span>
+            <span>Dar de Alta mi Primer Grupo</span>
+          </button>
+        </div>
+      ) : filteredGroups.length === 0 ? (
+        <div className="bg-surface-container-lowest rounded-xl border border-[#E2E8F0] p-10 text-center my-4">
+          <span className="material-symbols-outlined text-3xl text-outline mb-2">search_off</span>
+          <p className="text-xs text-on-surface font-semibold">No se encontraron materias</p>
+          <p className="text-[11px] text-on-surface-variant mt-0.5">Ningún grupo coincide con los filtros de búsqueda o turno seleccionados.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-space-lg">
         {filteredGroups.map((group) => {
           const capPercent = Math.min(100, Math.round((group.students.length / (group.capacity || 1)) * 100 * 10) / 10);
           const activeSessions = group.schedule.filter(s => s.active);
@@ -269,6 +293,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           );
         })}
       </div>
+      )}
     </div>
   );
 };

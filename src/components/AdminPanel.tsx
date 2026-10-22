@@ -20,6 +20,7 @@ interface AdminPanelProps {
   onExportBackup: () => void;
   onImportBackup: (jsonData: string) => boolean;
   onResetDatabase: () => void;
+  onUpdateGroupTeacher?: (groupId: string, teacherId: string | undefined) => void;
 }
 
 export type AdminTab = 'cycles' | 'teachers' | 'groups' | 'backup';
@@ -38,6 +39,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onExportBackup,
   onImportBackup,
   onResetDatabase,
+  onUpdateGroupTeacher,
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('cycles');
 
@@ -565,9 +567,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           </span>
                         </td>
                         <td className="px-5 py-3.5">
-                          <span className="font-medium text-slate-800">
-                            {teacher ? teacher.name : group.teacherName || 'Sin asignar'}
-                          </span>
+                          {onUpdateGroupTeacher ? (
+                            <select
+                              value={group.teacherId || ''}
+                              onChange={(e) => onUpdateGroupTeacher(group.id, e.target.value || undefined)}
+                              className="text-xs font-medium text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-primary cursor-pointer max-w-[210px]"
+                            >
+                              <option value="">(Sin profesor asignado)</option>
+                              {users
+                                .filter((u) => u.role === 'teacher')
+                                .map((t) => (
+                                  <option key={t.id} value={t.id}>
+                                    {t.name}
+                                  </option>
+                                ))}
+                            </select>
+                          ) : (
+                            <span className="font-medium text-slate-800">
+                              {teacher ? teacher.name : group.teacherName || 'Sin asignar'}
+                            </span>
+                          )}
                         </td>
                         <td className="px-5 py-3.5">
                           <span className="inline-block px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-medium text-[11px]">
