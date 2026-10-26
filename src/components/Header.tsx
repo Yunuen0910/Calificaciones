@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, AcademicCycle, InstitutionInfo } from '../types';
 import { PROF_AVATAR } from '../data/mockData';
+import { ChangePasswordModal } from './ChangePasswordModal';
 
 interface HeaderProps {
   currentUser: User | null;
@@ -17,6 +18,10 @@ interface HeaderProps {
   onOpenHelp: () => void;
   unreadNotificationsCount?: number;
   institutionInfo?: InstitutionInfo;
+  schools?: InstitutionInfo[];
+  onSelectSchool?: (schoolId: string) => void;
+  onNavigateToSchools?: () => void;
+  onChangePassword?: (newPassword: string) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -29,10 +34,30 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenHelp,
   unreadNotificationsCount = 2,
   institutionInfo,
+  schools = [],
+  onSelectSchool,
+  onNavigateToSchools,
+  onChangePassword,
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCycleDropdown, setShowCycleDropdown] = useState(false);
+  const [showSchoolDropdown, setShowSchoolDropdown] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const notifications = [
     {
@@ -88,7 +113,10 @@ export const Header: React.FC<HeaderProps> = ({
         {/* School Cycle Badge Selector in Header */}
         <div className="relative hidden md:block">
           <button
-            onClick={() => setShowCycleDropdown(!showCycleDropdown)}
+            onClick={() => {
+              setShowCycleDropdown(!showCycleDropdown);
+              setShowSchoolDropdown(false);
+            }}
             className="h-9 px-3 bg-slate-100 hover:bg-slate-200/80 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border border-slate-200"
             title="Seleccionar ciclo escolar"
           >
@@ -136,27 +164,133 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
           )}
-
-          {/* Institution Campus Tag */}
-          {institutionInfo && (
-            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100/80 border border-slate-200/80 rounded-lg text-xs text-slate-600 font-medium">
-              <span className="material-symbols-outlined text-sm text-secondary">
-                account_balance
-              </span>
-              <span className="truncate max-w-[140px] font-semibold text-slate-700">
-                {institutionInfo.shortName}
-              </span>
-              <span className="text-slate-300">•</span>
-              <span className="text-[11px] text-slate-500 truncate max-w-[120px]">
-                {institutionInfo.campus}
-              </span>
-            </div>
-          )}
         </div>
+
+        {/* Multi-School / Plantel Selector in Header */}
+        {institutionInfo && (
+          <div className="relative hidden lg:block">
+            <button
+              onClick={() => {
+                setShowSchoolDropdown(!showSchoolDropdown);
+                setShowCycleDropdown(false);
+              }}
+              className="h-9 px-2.5 bg-slate-50 hover:bg-slate-100/90 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer border border-slate-200/90 shadow-2xs"
+              title="Cambiar de escuela o plantel"
+            >
+              <div className="w-5 h-5 rounded-md bg-white border border-slate-200 p-0.5 flex items-center justify-center shrink-0">
+                <img
+                  src={institutionInfo.logoUrl}
+                  alt={institutionInfo.shortName}
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="truncate max-w-[130px] font-bold text-slate-800">
+                  {institutionInfo.shortName}
+                </span>
+                <span className="text-slate-300">•</span>
+                <span className="text-[11px] text-slate-500 font-medium truncate max-w-[110px]">
+                  {institutionInfo.campus}
+                </span>
+              </div>
+              <span className="material-symbols-outlined text-sm text-slate-400">
+                arrow_drop_down
+              </span>
+            </button>
+
+            {showSchoolDropdown && (
+              <div className="absolute left-0 mt-1.5 w-72 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50">
+                <div className="px-3 py-1.5 border-b border-slate-100 flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Cambiar Escuela / Plantel
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    {schools.length} planteles
+                  </span>
+                </div>
+                <div className="max-h-64 overflow-y-auto divide-y divide-slate-50">
+                  {schools.map((school) => {
+                    const isSelected = school.id === institutionInfo.id;
+                    return (
+                      <button
+                        key={school.id}
+                        onClick={() => {
+                          if (onSelectSchool) onSelectSchool(school.id);
+                          setShowSchoolDropdown(false);
+                        }}
+                        className={`w-full text-left p-2.5 text-xs font-medium hover:bg-slate-50 transition-colors flex items-center gap-2.5 cursor-pointer ${
+                          isSelected ? 'bg-primary/5 text-primary font-bold' : 'text-slate-700'
+                        }`}
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 p-1 flex items-center justify-center shrink-0 shadow-2xs">
+                          <img
+                            src={school.logoUrl}
+                            alt={school.name}
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-bold text-slate-900 leading-tight">
+                            {school.name}
+                          </p>
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5">
+                            <span className="text-primary font-semibold truncate">{school.campus}</span>
+                            <span className="text-slate-300">•</span>
+                            <span className="font-mono text-[10px] text-slate-400">{school.cctCode || 'S/N CCT'}</span>
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <span className="material-symbols-outlined text-primary text-base shrink-0">
+                            check_circle
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {onNavigateToSchools && (
+                  <div className="p-2 border-t border-slate-100 bg-slate-50/60 rounded-b-xl">
+                    <button
+                      onClick={() => {
+                        setShowSchoolDropdown(false);
+                        onNavigateToSchools();
+                      }}
+                      className="w-full py-1.5 px-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[11px] font-bold text-primary flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-sm">settings_suggest</span>
+                      <span>Administrar Escuelas y Logos</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Right Controls */}
       <div className="flex items-center gap-space-md">
+        {/* Offline / Online connection status badge */}
+        {!isOnline ? (
+          <div
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-800 rounded-full text-xs font-semibold shadow-xs"
+            title="Sin conexión a internet. Los cambios se guardan localmente en tu dispositivo."
+          >
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+            <span className="hidden sm:inline">Modo Offline (Guardando local)</span>
+            <span className="sm:hidden">Offline</span>
+          </div>
+        ) : (
+          <div
+            className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full text-[11px] font-medium"
+            title="Conexión activa a internet"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span>En línea</span>
+          </div>
+        )}
+
         {/* Notifications */}
         <div className="relative">
           <button
@@ -280,6 +414,20 @@ export const Header: React.FC<HeaderProps> = ({
                   type="button"
                   onClick={() => {
                     setShowUserMenu(false);
+                    setIsChangePasswordOpen(true);
+                  }}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-slate-50 font-semibold text-xs transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-base text-slate-500">key</span>
+                  <span>Cambiar mi Contraseña</span>
+                </button>
+
+                <div className="border-t border-[#F1F5F9] my-1"></div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowUserMenu(false);
                     onLogout();
                   }}
                   className="w-full flex items-center gap-2 px-4 py-2 text-rose-600 hover:bg-rose-50 font-semibold text-xs transition-colors cursor-pointer"
@@ -292,6 +440,20 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      {currentUser && (
+        <ChangePasswordModal
+          isOpen={isChangePasswordOpen}
+          onClose={() => setIsChangePasswordOpen(false)}
+          currentUser={currentUser}
+          onChangePassword={(newPassword) => {
+            if (onChangePassword) {
+              onChangePassword(newPassword);
+            }
+          }}
+        />
+      )}
     </header>
   );
 };

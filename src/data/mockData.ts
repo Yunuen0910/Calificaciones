@@ -10,6 +10,7 @@ export const AULAGRADE_LOGO = "https://lh3.googleusercontent.com/aida-public/AB6
 export const PROF_AVATAR = "https://lh3.googleusercontent.com/aida-public/AB6AXuCA9XgciCHMAqtXZ1RNKG3bbZ91L1NHuLFe6O4y-U9wNHwon8rCRaUC2I3K8ZCW90e7uN02bnb0hhoz8au5kp09WzbW4vvgsP7IisEGNyvXPn2p3g3bTOrMtQdBQsrFKb5HsOoNptRS9Qr58HRkdxSCv0cSC50QJDFQG04wQXvsWbJ3JeZVcuGGZYVXkFZLSrja8KG4dIJNafb1DPoJT3MPLPXiq8I4ZRACmrodTskuLUf6oTeaQRKRFQ";
 
 export const INITIAL_INSTITUTION_INFO: InstitutionInfo = {
+  id: 'school-1',
   name: 'AulaGrade Instituto Académico',
   shortName: 'AulaGrade',
   campus: 'Campus Norte',
@@ -20,7 +21,26 @@ export const INITIAL_INSTITUTION_INFO: InstitutionInfo = {
   email: 'contacto@aulagrade.edu',
   directorName: 'Dra. Gabriela Solís Vega',
   directorTitle: 'Directora General y Servicios Escolares',
+  isDefault: true,
 };
+
+export const INITIAL_SCHOOLS: InstitutionInfo[] = [
+  INITIAL_INSTITUTION_INFO,
+  {
+    id: 'school-2',
+    name: 'Colegio Preparatorio Siglo XXI',
+    shortName: 'Siglo XXI',
+    campus: 'Plantel Oriente',
+    cctCode: '15PBH0098Z',
+    logoUrl: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?auto=format&fit=crop&w=200&q=80',
+    address: 'Calzada de los Leones 450, Fracc. Las Torres',
+    phone: '+52 (55) 5678-9012',
+    email: 'direccion@sigloxxi.edu',
+    directorName: 'Mtro. Fernando Arriaga Ríos',
+    directorTitle: 'Director Técnico y Control Escolar',
+    isDefault: false,
+  },
+];
 
 export const INITIAL_CYCLES: AcademicCycle[] = [
   {
@@ -145,6 +165,7 @@ export const INITIAL_STUDENTS: Student[] = [
 export const INITIAL_GROUPS: Group[] = [
   {
     id: 'grp-fis-302',
+    schoolId: 'school-1',
     name: 'Física Cuántica I',
     code: 'FIS-302',
     educationLevel: 'Licenciatura / Universidad',
@@ -185,6 +206,7 @@ export const INITIAL_GROUPS: Group[] = [
   },
   {
     id: 'grp-mat-201',
+    schoolId: 'school-1',
     name: 'Álgebra Lineal Avanzada',
     code: 'MAT-201',
     educationLevel: 'Licenciatura / Universidad',
@@ -222,6 +244,7 @@ export const INITIAL_GROUPS: Group[] = [
   },
   {
     id: 'grp-qui-104',
+    schoolId: 'school-1',
     name: 'Química General y Estequiometría',
     code: 'QUI-104',
     educationLevel: 'Secundaria / Bachillerato',

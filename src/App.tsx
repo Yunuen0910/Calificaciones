@@ -12,6 +12,7 @@ import {
   INITIAL_USERS,
   INITIAL_CYCLES,
   INITIAL_INSTITUTION_INFO,
+  INITIAL_SCHOOLS,
 } from './data/mockData';
 import { Sidebar, NavTab } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -128,18 +129,39 @@ export default function App() {
     return INITIAL_STUDENT_SCORES;
   });
 
-  // 8. Institutional Info state
-  const [institutionInfo, setInstitutionInfo] = useState<InstitutionInfo>(() => {
-    const saved = localStorage.getItem('aulagrade_institution_info');
+  // 8. Multi-Escuela / Planteles state
+  const [schools, setSchools] = useState<InstitutionInfo[]>(() => {
+    const saved = localStorage.getItem('aulagrade_schools_list');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (e) {
-        console.error('Failed to parse saved institution info', e);
+        console.error('Failed to parse schools', e);
       }
     }
-    return INITIAL_INSTITUTION_INFO;
+    // Backward compatibility with previous single institution info
+    const legacy = localStorage.getItem('aulagrade_institution_info');
+    if (legacy) {
+      try {
+        const parsedLegacy = JSON.parse(legacy);
+        if (parsedLegacy && parsedLegacy.name) {
+          return [{ ...parsedLegacy, id: parsedLegacy.id || 'school-1' }, ...INITIAL_SCHOOLS.slice(1)];
+        }
+      } catch (e) {}
+    }
+    return INITIAL_SCHOOLS;
   });
+
+  const [activeSchoolId, setActiveSchoolId] = useState<string>(() => {
+    const saved = localStorage.getItem('aulagrade_active_school_id');
+    if (saved) return saved;
+    return 'school-1';
+  });
+
+  const activeSchool = useMemo(() => {
+    return schools.find((s) => s.id === activeSchoolId) || schools[0] || INITIAL_INSTITUTION_INFO;
+  }, [schools, activeSchoolId]);
 
   // Synchronize to localStorage
   useEffect(() => {
@@ -175,8 +197,16 @@ export default function App() {
   }, [scores]);
 
   useEffect(() => {
-    localStorage.setItem('aulagrade_institution_info', JSON.stringify(institutionInfo));
-  }, [institutionInfo]);
+    localStorage.setItem('aulagrade_schools_list', JSON.stringify(schools));
+    // Also keep legacy key synced for compatibility
+    if (activeSchool) {
+      localStorage.setItem('aulagrade_institution_info', JSON.stringify(activeSchool));
+    }
+  }, [schools, activeSchool]);
+
+  useEffect(() => {
+    localStorage.setItem('aulagrade_active_school_id', activeSchoolId);
+  }, [activeSchoolId]);
 
   // Global keyboard shortcut ⌘K
   useEffect(() => {
@@ -190,11 +220,18 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleGlobalKey);
   }, []);
 
-  // Filter groups visible to current user based on role and academic cycle
+  // Filter groups visible to current user based on active school, teacher role, and academic cycle
   const visibleGroups = useMemo(() => {
     if (!currentUser) return [];
 
     let filtered = groups;
+
+    // Filter by active school (groups without schoolId default to school-1)
+    if (activeSchool?.id) {
+      filtered = filtered.filter(
+        (g) => (g.schoolId || 'school-1') === activeSchool.id
+      );
+    }
 
     // Filter by teacher role if teacher: strictly isolate to only groups belonging to this teacher
     if (currentUser.role === 'teacher') {
@@ -213,7 +250,7 @@ export default function App() {
     }
 
     return filtered;
-  }, [groups, currentUser, activeCycle]);
+  }, [groups, currentUser, activeCycle, activeSchool]);
 
   // Keep selectedGroupId pointing to a valid visible group if available
   useEffect(() => {
@@ -316,6 +353,15 @@ export default function App() {
     );
   };
 
+  const handleChangePassword = (newPassword: string) => {
+    if (!currentUser) return;
+    const updatedUser = { ...currentUser, password: newPassword };
+    setCurrentUser(updatedUser);
+    setUsers((prev) =>
+      prev.map((u) => (u.id === currentUser.id ? updatedUser : u))
+    );
+  };
+
   const handleUpdateGroupTeacher = (groupId: string, teacherId: string | undefined) => {
     const teacher = users.find((u) => u.id === teacherId);
     setGroups((prev) =>
@@ -361,9 +407,29 @@ export default function App() {
     );
   };
 
-  // Institutional settings & Database cleanups
-  const handleUpdateInstitutionInfo = (updatedInfo: InstitutionInfo) => {
-    setInstitutionInfo(updatedInfo);
+  // Multi-School / Planteles management
+  const handleAddSchool = (newSchool: InstitutionInfo) => {
+    setSchools((prev) => [...prev, newSchool]);
+    setActiveSchoolId(newSchool.id);
+  };
+
+  const handleUpdateSchool = (updatedSchool: InstitutionInfo) => {
+    setSchools((prev) =>
+      prev.map((s) => (s.id === updatedSchool.id ? updatedSchool : s))
+    );
+  };
+
+  const handleDeleteSchool = (schoolId: string) => {
+    if (schools.length <= 1) return;
+    setSchools((prev) => prev.filter((s) => s.id !== schoolId));
+    if (activeSchoolId === schoolId) {
+      const remaining = schools.filter((s) => s.id !== schoolId);
+      setActiveSchoolId(remaining[0]?.id || 'school-1');
+    }
+  };
+
+  const handleSelectActiveSchool = (schoolId: string) => {
+    setActiveSchoolId(schoolId);
   };
 
   const handleClearDemoStudents = () => {
@@ -409,9 +475,11 @@ export default function App() {
   const handleExportBackup = () => {
     const backupData = {
       app: 'AulaGrade',
-      version: '2.0.0',
+      version: '2.5.0',
       exportedAt: new Date().toISOString(),
-      institutionInfo,
+      institutionInfo: activeSchool,
+      schools,
+      activeSchoolId,
       activeCycle,
       users,
       cycles,
@@ -437,8 +505,15 @@ export default function App() {
       const data = JSON.parse(jsonString);
       if (!data || typeof data !== 'object') return false;
 
-      if (data.institutionInfo && typeof data.institutionInfo === 'object') {
-        setInstitutionInfo(data.institutionInfo);
+      if (Array.isArray(data.schools) && data.schools.length > 0) {
+        setSchools(data.schools);
+        if (data.activeSchoolId && typeof data.activeSchoolId === 'string') {
+          setActiveSchoolId(data.activeSchoolId);
+        }
+      } else if (data.institutionInfo && typeof data.institutionInfo === 'object') {
+        const inst = { ...data.institutionInfo, id: data.institutionInfo.id || 'school-1' };
+        setSchools([inst]);
+        setActiveSchoolId(inst.id);
       }
       if (Array.isArray(data.users)) setUsers(data.users);
       if (Array.isArray(data.cycles)) setCycles(data.cycles);
@@ -463,13 +538,16 @@ export default function App() {
     localStorage.removeItem('aulagrade_scores_data');
     localStorage.removeItem('aulagrade_active_cycle');
     localStorage.removeItem('aulagrade_institution_info');
+    localStorage.removeItem('aulagrade_schools_list');
+    localStorage.removeItem('aulagrade_active_school_id');
 
     setUsers(INITIAL_USERS);
     setCycles(INITIAL_CYCLES);
     setGroups(INITIAL_GROUPS);
     setAssignments(INITIAL_ASSIGNMENTS);
     setScores(INITIAL_STUDENT_SCORES);
-    setInstitutionInfo(INITIAL_INSTITUTION_INFO);
+    setSchools(INITIAL_SCHOOLS);
+    setActiveSchoolId('school-1');
     setActiveCycle('Ciclo 2024-2025 • P2');
     setSelectedGroupId('grp-fis-302');
   };
@@ -495,7 +573,7 @@ export default function App() {
       <LoginView
         users={users}
         onLoginSuccess={handleLoginSuccess}
-        institutionInfo={institutionInfo}
+        institutionInfo={activeSchool}
       />
     );
   }
@@ -514,7 +592,7 @@ export default function App() {
         cycles={cycles}
         onSelectCycle={(cycle) => setActiveCycle(cycle)}
         onLogout={handleLogout}
-        institutionInfo={institutionInfo}
+        institutionInfo={activeSchool}
       />
 
       {/* Main Content Area */}
@@ -528,7 +606,11 @@ export default function App() {
           onSelectCycle={(cycle) => setActiveCycle(cycle)}
           onOpenSearch={() => setIsSearchOpen(true)}
           onOpenHelp={() => setIsHelpOpen(true)}
-          institutionInfo={institutionInfo}
+          institutionInfo={activeSchool}
+          schools={schools}
+          onSelectSchool={handleSelectActiveSchool}
+          onNavigateToSchools={() => setActiveTab('admin-panel')}
+          onChangePassword={handleChangePassword}
         />
 
         {/* View Router */}
@@ -567,8 +649,12 @@ export default function App() {
               cycles={cycles}
               groups={groups}
               activeCycle={activeCycle}
-              institutionInfo={institutionInfo}
-              onUpdateInstitutionInfo={handleUpdateInstitutionInfo}
+              schools={schools}
+              activeSchoolId={activeSchoolId}
+              onSelectActiveSchool={handleSelectActiveSchool}
+              onAddSchool={handleAddSchool}
+              onUpdateSchool={handleUpdateSchool}
+              onDeleteSchool={handleDeleteSchool}
               onClearDemoStudents={handleClearDemoStudents}
               onCleanSlate={handleCleanSlate}
               onResetDemoData={handleResetDemoData}
@@ -591,6 +677,7 @@ export default function App() {
               activeCycle={activeCycle}
               cycles={cycles}
               currentUser={currentUser}
+              activeSchool={activeSchool}
               onCancel={() =>
                 setActiveTab(currentUser.role === 'admin' ? 'admin-panel' : 'dashboard')
               }
@@ -644,7 +731,7 @@ export default function App() {
               onSelectGroup={(id) => setSelectedGroupId(id)}
               assignments={assignments}
               scores={scores}
-              institutionInfo={institutionInfo}
+              institutionInfo={activeSchool}
               onNavigateToTab={(tab) => setActiveTab(tab)}
             />
           )}

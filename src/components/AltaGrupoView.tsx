@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Group, Student, SessionSchedule, WeekDay, EvaluationStructure, AcademicCycle, User } from '../types';
+import { Group, Student, SessionSchedule, WeekDay, EvaluationStructure, AcademicCycle, User, InstitutionInfo } from '../types';
 import { INITIAL_STUDENTS } from '../data/mockData';
 
 interface AltaGrupoViewProps {
@@ -14,6 +14,7 @@ interface AltaGrupoViewProps {
   activeCycle?: string;
   cycles?: AcademicCycle[];
   currentUser?: User | null;
+  activeSchool?: InstitutionInfo;
 }
 
 export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
@@ -23,6 +24,7 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
   activeCycle = 'Ciclo 2024-2025 • P2',
   cycles = [],
   currentUser = null,
+  activeSchool,
 }) => {
   // Form State
   const [subjectName, setSubjectName] = useState('Física Cuántica I');
@@ -227,6 +229,7 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
       shift,
       academicCycle,
       cycleId: cycleObj?.id,
+      schoolId: activeSchool?.id || 'school-1',
       teacherId: currentUser?.id,
       teacherName: currentUser?.name,
       classroom: classroom.trim() || 'Aula General',

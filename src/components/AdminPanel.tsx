@@ -12,8 +12,12 @@ interface AdminPanelProps {
   cycles: AcademicCycle[];
   groups: Group[];
   activeCycle: string;
-  institutionInfo: InstitutionInfo;
-  onUpdateInstitutionInfo: (info: InstitutionInfo) => void;
+  schools: InstitutionInfo[];
+  activeSchoolId: string;
+  onSelectActiveSchool: (schoolId: string) => void;
+  onAddSchool: (school: InstitutionInfo) => void;
+  onUpdateSchool: (school: InstitutionInfo) => void;
+  onDeleteSchool: (schoolId: string) => void;
   onClearDemoStudents: () => void;
   onCleanSlate: () => void;
   onResetDemoData: () => void;
@@ -36,8 +40,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   cycles,
   groups,
   activeCycle,
-  institutionInfo,
-  onUpdateInstitutionInfo,
+  schools,
+  activeSchoolId,
+  onSelectActiveSchool,
+  onAddSchool,
+  onUpdateSchool,
+  onDeleteSchool,
   onClearDemoStudents,
   onCleanSlate,
   onResetDemoData,
@@ -76,32 +84,64 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [teacherAssignedGroups, setTeacherAssignedGroups] = useState<string[]>([]);
   const [teacherFormError, setTeacherFormError] = useState('');
 
-  // Institutional Form state
-  const [instName, setInstName] = useState(institutionInfo.name);
-  const [instShortName, setInstShortName] = useState(institutionInfo.shortName);
-  const [instCampus, setInstCampus] = useState(institutionInfo.campus);
-  const [instCctCode, setInstCctCode] = useState(institutionInfo.cctCode);
-  const [instLogoUrl, setInstLogoUrl] = useState(institutionInfo.logoUrl);
-  const [instAddress, setInstAddress] = useState(institutionInfo.address);
-  const [instPhone, setInstPhone] = useState(institutionInfo.phone);
-  const [instEmail, setInstEmail] = useState(institutionInfo.email);
-  const [instDirectorName, setInstDirectorName] = useState(institutionInfo.directorName);
-  const [instDirectorTitle, setInstDirectorTitle] = useState(institutionInfo.directorTitle);
+  // Multi-school state
+  const [selectedSchoolId, setSelectedSchoolId] = useState<string>(activeSchoolId);
+  const selectedSchool = schools.find((s) => s.id === selectedSchoolId) || schools[0] || {
+    id: 'school-1',
+    name: 'AulaGrade Instituto Académico',
+    shortName: 'AulaGrade',
+    campus: 'Campus Norte',
+    cctCode: '09DEX0142A',
+    logoUrl: AULAGRADE_LOGO,
+    address: 'Av. Universidad Tecnológica 1024, Edificio Central',
+    phone: '+52 (55) 5840-2000',
+    email: 'contacto@aulagrade.edu',
+    directorName: 'Dra. Gabriela Solís Vega',
+    directorTitle: 'Directora General y Servicios Escolares',
+  };
+
+  // New School Modal state
+  const [isNewSchoolModalOpen, setIsNewSchoolModalOpen] = useState(false);
+  const [newSchoolName, setNewSchoolName] = useState('');
+  const [newSchoolShortName, setNewSchoolShortName] = useState('');
+  const [newSchoolCampus, setNewSchoolCampus] = useState('');
+  const [newSchoolCct, setNewSchoolCct] = useState('');
+  const [newSchoolLogo, setNewSchoolLogo] = useState('');
+  const [newSchoolAddress, setNewSchoolAddress] = useState('');
+  const [newSchoolPhone, setNewSchoolPhone] = useState('');
+  const [newSchoolEmail, setNewSchoolEmail] = useState('');
+  const [newSchoolDirector, setNewSchoolDirector] = useState('');
+  const [newSchoolDirectorTitle, setNewSchoolDirectorTitle] = useState('Director(a) General');
+
+  // Edit Institutional Form state
+  const [instName, setInstName] = useState(selectedSchool.name);
+  const [instShortName, setInstShortName] = useState(selectedSchool.shortName);
+  const [instCampus, setInstCampus] = useState(selectedSchool.campus);
+  const [instCctCode, setInstCctCode] = useState(selectedSchool.cctCode);
+  const [instLogoUrl, setInstLogoUrl] = useState(selectedSchool.logoUrl);
+  const [instAddress, setInstAddress] = useState(selectedSchool.address);
+  const [instPhone, setInstPhone] = useState(selectedSchool.phone);
+  const [instEmail, setInstEmail] = useState(selectedSchool.email);
+  const [instDirectorName, setInstDirectorName] = useState(selectedSchool.directorName);
+  const [instDirectorTitle, setInstDirectorTitle] = useState(selectedSchool.directorTitle);
   const [instSavedToast, setInstSavedToast] = useState(false);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
+  const newSchoolLogoFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setInstName(institutionInfo.name);
-    setInstShortName(institutionInfo.shortName);
-    setInstCampus(institutionInfo.campus);
-    setInstCctCode(institutionInfo.cctCode);
-    setInstLogoUrl(institutionInfo.logoUrl);
-    setInstAddress(institutionInfo.address);
-    setInstPhone(institutionInfo.phone);
-    setInstEmail(institutionInfo.email);
-    setInstDirectorName(institutionInfo.directorName);
-    setInstDirectorTitle(institutionInfo.directorTitle);
-  }, [institutionInfo]);
+    if (selectedSchool) {
+      setInstName(selectedSchool.name);
+      setInstShortName(selectedSchool.shortName);
+      setInstCampus(selectedSchool.campus);
+      setInstCctCode(selectedSchool.cctCode);
+      setInstLogoUrl(selectedSchool.logoUrl);
+      setInstAddress(selectedSchool.address);
+      setInstPhone(selectedSchool.phone);
+      setInstEmail(selectedSchool.email);
+      setInstDirectorName(selectedSchool.directorName);
+      setInstDirectorTitle(selectedSchool.directorTitle);
+    }
+  }, [selectedSchool]);
 
   const handleLogoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -115,9 +155,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     reader.readAsDataURL(file);
   };
 
+  const handleNewSchoolLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setNewSchoolLogo(event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSaveInstitution = (e: React.FormEvent) => {
     e.preventDefault();
     const updated: InstitutionInfo = {
+      ...selectedSchool,
+      id: selectedSchool.id,
       name: instName.trim() || 'AulaGrade Instituto Académico',
       shortName: instShortName.trim() || 'AulaGrade',
       campus: instCampus.trim() || 'Campus Norte',
@@ -129,9 +183,41 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       directorName: instDirectorName.trim(),
       directorTitle: instDirectorTitle.trim(),
     };
-    onUpdateInstitutionInfo(updated);
+    onUpdateSchool(updated);
     setInstSavedToast(true);
     setTimeout(() => setInstSavedToast(false), 3000);
+  };
+
+  const handleCreateNewSchool = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSchoolName.trim()) return;
+
+    const newSchool: InstitutionInfo = {
+      id: `school-${Date.now()}`,
+      name: newSchoolName.trim(),
+      shortName: newSchoolShortName.trim() || newSchoolName.trim().slice(0, 12),
+      campus: newSchoolCampus.trim() || 'Plantel Principal',
+      cctCode: newSchoolCct.trim() || '09DEX0000X',
+      logoUrl: newSchoolLogo || AULAGRADE_LOGO,
+      address: newSchoolAddress.trim(),
+      phone: newSchoolPhone.trim(),
+      email: newSchoolEmail.trim(),
+      directorName: newSchoolDirector.trim() || 'Director(a) General',
+      directorTitle: newSchoolDirectorTitle.trim() || 'Director(a)',
+    };
+
+    onAddSchool(newSchool);
+    setSelectedSchoolId(newSchool.id);
+    setIsNewSchoolModalOpen(false);
+    setNewSchoolName('');
+    setNewSchoolShortName('');
+    setNewSchoolCampus('');
+    setNewSchoolCct('');
+    setNewSchoolLogo('');
+    setNewSchoolAddress('');
+    setNewSchoolPhone('');
+    setNewSchoolEmail('');
+    setNewSchoolDirector('');
   };
 
   // Import file ref
@@ -375,7 +461,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           }`}
         >
           <span className="material-symbols-outlined text-base">account_balance</span>
-          <span>Identidad Institucional</span>
+          <span>Escuelas e Identidad ({schools.length})</span>
         </button>
 
         <button
@@ -890,22 +976,185 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         </div>
       )}
 
-      {/* TAB 5: IDENTIDAD INSTITUCIONAL */}
+      {/* TAB 5: IDENTIDAD INSTITUCIONAL Y MULTI-ESCUELA */}
       {activeTab === 'institution' && (
         <div className="space-y-6">
-          {/* Header Card */}
+          {/* Schools Selector / Multi-Plantel Section */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-2xl">account_balance</span>
+                  <span className="material-symbols-outlined text-2xl">domain</span>
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-slate-900">
-                    Identidad Institucional y Membrete Oficial
+                    Planteles y Escuelas Registradas ({schools.length})
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Personaliza el nombre de la escuela, campus/plantel, logotipo institucional y datos oficiales para boletas, reportes y encabezados.
+                    Gestiona múltiples escuelas con logos, directores, CCT y membretes 100% independientes en el mismo sistema.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsNewSchoolModalOpen(true)}
+                className="px-4 py-2 bg-primary hover:bg-primary/95 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0"
+              >
+                <span className="material-symbols-outlined text-base">add_business</span>
+                <span>+ Registrar Nueva Escuela</span>
+              </button>
+            </div>
+
+            {/* School Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-5">
+              {schools.map((school) => {
+                const isActive = activeSchoolId === school.id;
+                const isEditing = selectedSchoolId === school.id;
+                const schoolGroupCount = groups.filter((g) => (g.schoolId || 'school-1') === school.id).length;
+
+                return (
+                  <div
+                    key={school.id}
+                    className={`rounded-2xl p-4 border transition-all flex flex-col justify-between relative ${
+                      isEditing
+                        ? 'bg-blue-50/40 border-primary shadow-sm ring-1 ring-primary/30'
+                        : 'bg-white border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div>
+                      {/* Status Badges */}
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {isActive && (
+                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                              Escuela Activa
+                            </span>
+                          )}
+                          {isEditing && (
+                            <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold">
+                              Editando membrete
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
+                          {school.cctCode || 'S/N CCT'}
+                        </span>
+                      </div>
+
+                      {/* Header with Logo */}
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 p-1 flex items-center justify-center shrink-0 shadow-xs">
+                          <img
+                            src={school.logoUrl}
+                            alt={school.name}
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="text-sm font-bold text-slate-900 leading-snug line-clamp-1" title={school.name}>
+                            {school.name}
+                          </h4>
+                          <p className="text-xs text-primary font-medium flex items-center gap-1 mt-0.5">
+                            <span className="material-symbols-outlined text-[13px]">location_on</span>
+                            <span className="truncate">{school.campus}</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* School Details */}
+                      <div className="text-[11px] text-slate-500 space-y-1 mb-4 bg-slate-50/80 p-2.5 rounded-xl border border-slate-100">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Director(a):</span>
+                          <span className="font-semibold text-slate-700 truncate max-w-[170px]" title={school.directorName}>
+                            {school.directorName || 'Sin asignar'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Grupos en plantel:</span>
+                          <span className="font-semibold text-slate-700">
+                            {schoolGroupCount} {schoolGroupCount === 1 ? 'grupo' : 'grupos'}
+                          </span>
+                        </div>
+                        {school.address && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400">Dirección:</span>
+                            <span className="truncate max-w-[170px] text-slate-600" title={school.address}>
+                              {school.address}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-1">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedSchoolId(school.id)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors ${
+                            isEditing
+                              ? 'bg-primary text-white'
+                              : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-sm">edit</span>
+                          <span>{isEditing ? 'Editando' : 'Editar'}</span>
+                        </button>
+
+                        {!isActive && (
+                          <button
+                            type="button"
+                            onClick={() => onSelectActiveSchool(school.id)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center gap-1 cursor-pointer transition-colors"
+                            title="Cambiar a esta escuela como la activa en el sistema"
+                          >
+                            <span className="material-symbols-outlined text-sm">check_circle</span>
+                            <span>Activar</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {schools.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                `¿Estás seguro de eliminar el plantel "${school.name}"? Los datos de este plantel se descartarán.`
+                              )
+                            ) {
+                              onDeleteSchool(school.id);
+                            }
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          title="Eliminar este plantel"
+                        >
+                          <span className="material-symbols-outlined text-base">delete</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Form to edit selected school */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-primary flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-xl">edit_document</span>
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Membrete y Datos Oficiales de: {selectedSchool.name}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Modifica los datos del plantel seleccionado (<span className="font-semibold text-primary">{selectedSchool.campus}</span>). Se reflejarán de inmediato en boletas, listas y reportes.
                   </p>
                 </div>
               </div>
@@ -913,7 +1162,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               {instSavedToast && (
                 <div className="px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-semibold flex items-center gap-2 animate-in fade-in">
                   <span className="material-symbols-outlined text-base">check_circle</span>
-                  <span>¡Datos institucionales actualizados correctamente!</span>
+                  <span>¡Datos del plantel actualizados correctamente!</span>
                 </div>
               )}
             </div>
@@ -1418,6 +1667,202 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   className="px-4 py-2 bg-secondary hover:bg-secondary/95 text-white text-xs font-semibold rounded-xl shadow-sm"
                 >
                   {editingTeacher ? 'Guardar Cambios' : 'Registrar Profesor'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* MODAL: REGISTRAR NUEVA ESCUELA / PLANTEL */}
+      {isNewSchoolModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-xl">
+                  add_business
+                </span>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Registrar Nueva Escuela o Plantel
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Crea una institución independiente con su propio logo, CCT y directores
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsNewSchoolModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateNewSchool} className="p-5 space-y-4">
+              {/* Logo Preview and Upload */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-4">
+                <div className="w-16 h-16 rounded-xl bg-white border border-slate-200 p-1 flex items-center justify-center shrink-0">
+                  <img
+                    src={newSchoolLogo || AULAGRADE_LOGO}
+                    alt="Logo"
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </div>
+                <div className="flex-1 space-y-1.5">
+                  <label className="block text-[11px] font-semibold text-slate-700">
+                    Logotipo del Plantel
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={newSchoolLogoFileInputRef}
+                      onChange={handleNewSchoolLogoUpload}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => newSchoolLogoFileInputRef.current?.click()}
+                      className="px-3 py-1 bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-semibold rounded-lg cursor-pointer"
+                    >
+                      Subir Imagen
+                    </button>
+                    <input
+                      type="url"
+                      placeholder="o pega URL de imagen"
+                      value={newSchoolLogo}
+                      onChange={(e) => setNewSchoolLogo(e.target.value)}
+                      className="flex-1 h-7 px-2 bg-white border border-slate-200 rounded-lg text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Nombre Oficial de la Escuela *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ej. Instituto de Bachillerato Tecnológico Siglo XXI"
+                    value={newSchoolName}
+                    onChange={(e) => setNewSchoolName(e.target.value)}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Nombre Corto / Siglas *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ej. IBAT / Colegio Siglo XXI"
+                    value={newSchoolShortName}
+                    onChange={(e) => setNewSchoolShortName(e.target.value)}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Campus / Sede / Plantel *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ej. Plantel Sur / Sede Centro"
+                    value={newSchoolCampus}
+                    onChange={(e) => setNewSchoolCampus(e.target.value)}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Clave CCT / Registro SEP
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="ej. 09DEX0999Z"
+                    value={newSchoolCct}
+                    onChange={(e) => setNewSchoolCct(e.target.value)}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Director(a) o Titular
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="ej. Mtro. Juan Pablo Ruiz"
+                    value={newSchoolDirector}
+                    onChange={(e) => setNewSchoolDirector(e.target.value)}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Dirección del Plantel
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="ej. Av. Insurgentes Sur 450, Col. Roma"
+                    value={newSchoolAddress}
+                    onChange={(e) => setNewSchoolAddress(e.target.value)}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Teléfono
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="ej. +52 55 1234 5678"
+                    value={newSchoolPhone}
+                    onChange={(e) => setNewSchoolPhone(e.target.value)}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Correo Electrónico
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="ej. direccion@sigloxxi.edu"
+                    value={newSchoolEmail}
+                    onChange={(e) => setNewSchoolEmail(e.target.value)}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsNewSchoolModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-primary hover:bg-primary/95 text-white text-xs font-bold rounded-xl shadow-sm cursor-pointer flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-sm">check</span>
+                  <span>Crear Escuela</span>
                 </button>
               </div>
             </form>

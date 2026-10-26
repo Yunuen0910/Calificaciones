@@ -14,6 +14,7 @@ export interface User {
   avatarUrl?: string;
   department?: string;
   assignedGroupIds?: string[];
+  schoolIds?: string[]; // IDs of schools this teacher/user belongs to
   createdAt: string;
 }
 
@@ -69,6 +70,7 @@ export interface GradingCriteria {
 
 export interface Group {
   id: string;
+  schoolId?: string; // School to which this group belongs
   name: string;
   code: string;
   educationLevel: string;
@@ -113,6 +115,7 @@ export interface AttendanceRecord {
 }
 
 export interface InstitutionInfo {
+  id: string; // Unique school identifier e.g. "school-1"
   name: string; // e.g. "AulaGrade Instituto Académico"
   shortName: string; // e.g. "AulaGrade"
   campus: string; // e.g. "Campus Norte"
@@ -123,5 +126,6 @@ export interface InstitutionInfo {
   email: string; // e.g. "contacto@aulagrade.edu"
   directorName: string; // e.g. "Dra. Gabriela Solís Vega"
   directorTitle: string; // e.g. "Directora General y Servicios Escolares"
+  isDefault?: boolean;
 }
 
