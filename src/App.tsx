@@ -491,7 +491,13 @@ export default function App() {
 
   // If no user is logged in, show the Login screen
   if (!currentUser) {
-    return <LoginView users={users} onLoginSuccess={handleLoginSuccess} />;
+    return (
+      <LoginView
+        users={users}
+        onLoginSuccess={handleLoginSuccess}
+        institutionInfo={institutionInfo}
+      />
+    );
   }
 
   // Groups to pass to views (if admin is viewing dashboard/cuaderno, let them see visible groups or all if visible is empty)
@@ -595,6 +601,8 @@ export default function App() {
           {activeTab === 'dashboard' && (
             <DashboardView
               groups={activeViewGroups}
+              activeCycle={activeCycle}
+              scores={scores}
               onOpenCreateGroup={() => setActiveTab('alta-grupo')}
               onSelectGroupForGrades={(g) => {
                 setSelectedGroupId(g.id);

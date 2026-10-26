@@ -4,20 +4,22 @@
  */
 
 import React, { useState } from 'react';
-import { User } from '../types';
+import { User, InstitutionInfo } from '../types';
 import { AULAGRADE_LOGO } from '../data/mockData';
 
 interface LoginViewProps {
   users: User[];
   onLoginSuccess: (user: User) => void;
+  institutionInfo?: InstitutionInfo;
 }
 
-export const LoginView: React.FC<LoginViewProps> = ({ users, onLoginSuccess }) => {
+export const LoginView: React.FC<LoginViewProps> = ({ users, onLoginSuccess, institutionInfo }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDemoLogins, setShowDemoLogins] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +40,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ users, onLoginSuccess }) =
       if (user) {
         onLoginSuccess(user);
       } else {
-        setErrorMessage('Credenciales no válidas. Verifica tu correo y contraseña o usa los accesos de prueba.');
+        setErrorMessage('Credenciales no válidas. Verifica que tu correo y contraseña coincidan con los registrados.');
       }
       setIsSubmitting(false);
     }, 250);
@@ -64,16 +66,16 @@ export const LoginView: React.FC<LoginViewProps> = ({ users, onLoginSuccess }) =
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center p-3 bg-white rounded-2xl shadow-sm border border-[#E2E8F0] mb-4">
             <img
-              src={AULAGRADE_LOGO}
-              alt="AulaGrade Logo"
-              className="h-10 w-auto object-contain"
+              src={institutionInfo?.logoUrl || AULAGRADE_LOGO}
+              alt={institutionInfo?.name || "AulaGrade Logo"}
+              className="h-12 w-auto max-w-[150px] object-contain"
             />
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
-            AulaGrade
+            {institutionInfo?.name || 'AulaGrade'}
           </h1>
           <p className="text-sm text-slate-500 mt-1 font-medium">
-            Control Escolar y Gestión de Calificaciones
+            {institutionInfo?.campus ? `Plantel: ${institutionInfo.campus}` : 'Control Escolar y Gestión de Calificaciones'}
           </p>
         </div>
 
@@ -123,7 +125,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ users, onLoginSuccess }) =
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="text-[11px] text-primary hover:underline font-medium flex items-center gap-1"
+                  className="text-[11px] text-primary hover:underline font-medium flex items-center gap-1 cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-xs">
                     {showPassword ? 'visibility_off' : 'visibility'}
@@ -162,52 +164,76 @@ export const LoginView: React.FC<LoginViewProps> = ({ users, onLoginSuccess }) =
             </button>
           </form>
 
-          {/* Quick Demo Access Pills */}
-          <div className="mt-8 pt-6 border-t border-slate-100">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="material-symbols-outlined text-amber-500 text-sm">
-                bolt
-              </span>
-              <p className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                Accesos Rápidos de Prueba
-              </p>
+          {/* Quick Demo Access Pills (Collapsible / Optional for Testing) */}
+          <div className="mt-8 pt-5 border-t border-slate-100">
+            <div className="flex items-center justify-between mb-2">
+              <button
+                type="button"
+                onClick={() => setShowDemoLogins(!showDemoLogins)}
+                className="text-xs text-slate-500 hover:text-primary font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm text-amber-500">
+                  bolt
+                </span>
+                <span>Atajos de prueba rápida para administrador</span>
+                <span className="material-symbols-outlined text-sm">
+                  {showDemoLogins ? 'expand_less' : 'expand_more'}
+                </span>
+              </button>
+              {showDemoLogins && (
+                <span className="text-[10px] text-slate-400 font-mono">
+                  {users.length} cuentas
+                </span>
+              )}
             </div>
 
-            <div className="space-y-2">
-              {users.map((u) => (
-                <button
-                  key={u.id}
-                  type="button"
-                  onClick={() => handleQuickLogin(u)}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-primary/40 hover:shadow-sm text-left transition-all flex items-center justify-between group cursor-pointer"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div
-                      className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
-                        u.role === 'admin'
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-primary/10 text-primary'
-                      }`}
+            {showDemoLogins ? (
+              <div className="space-y-2 mt-3 animate-in fade-in duration-150">
+                <div className="p-2.5 bg-blue-50/90 border border-blue-200/90 rounded-xl text-[11px] text-blue-900 leading-relaxed mb-2">
+                  <span className="font-bold">Información de cuenta:</span> Las cuentas creadas son 100% reales y definitivas. Estos botones son solo un atajo opcional para acceder con 1 clic sin teclear la contraseña durante la configuración inicial. Los docentes pueden entrar directamente con su correo y contraseña en el formulario superior.
+                </div>
+
+                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  {users.map((u) => (
+                    <button
+                      key={u.id}
+                      type="button"
+                      onClick={() => handleQuickLogin(u)}
+                      className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-primary/40 hover:shadow-sm text-left transition-all flex items-center justify-between group cursor-pointer"
                     >
-                      <span className="material-symbols-outlined text-sm">
-                        {u.role === 'admin' ? 'admin_panel_settings' : 'school'}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                            u.role === 'admin'
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-primary/10 text-primary'
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-sm">
+                            {u.role === 'admin' ? 'admin_panel_settings' : 'school'}
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-slate-800 truncate group-hover:text-primary transition-colors">
+                            {u.name}
+                          </p>
+                          <p className="text-[10px] text-slate-500 truncate">
+                            {u.email} • {u.role === 'admin' ? 'Administrador' : 'Docente'}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="material-symbols-outlined text-slate-400 group-hover:text-primary text-sm shrink-0">
+                        login
                       </span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-slate-800 truncate group-hover:text-primary transition-colors">
-                        {u.name}
-                      </p>
-                      <p className="text-[10px] text-slate-500 truncate">
-                        {u.email} • {u.role === 'admin' ? 'Administrador' : 'Docente'}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="material-symbols-outlined text-slate-400 group-hover:text-primary text-sm shrink-0">
-                    arrow_forward
-                  </span>
-                </button>
-              ))}
-            </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-[11px] text-slate-400 text-center">
+                Modo producción activo. Los docentes inician sesión con su correo y contraseña.
+              </p>
+            )}
           </div>
         </div>
 

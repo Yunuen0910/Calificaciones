@@ -8,6 +8,8 @@ import { Group } from '../types';
 
 interface DashboardViewProps {
   groups: Group[];
+  activeCycle?: string;
+  scores?: Record<string, Record<string, number>>;
   onOpenCreateGroup: () => void;
   onSelectGroupForGrades: (group: Group) => void;
   onSelectGroupForAttendance: (group: Group) => void;
@@ -17,6 +19,8 @@ interface DashboardViewProps {
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   groups,
+  activeCycle,
+  scores,
   onOpenCreateGroup,
   onSelectGroupForGrades,
   onSelectGroupForAttendance,
@@ -38,6 +42,57 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const totalStudents = groups.reduce((acc, g) => acc + g.students.length, 0);
   const totalCapacity = groups.reduce((acc, g) => acc + g.capacity, 0);
 
+  // Compute real average grade across all students in active groups
+  const averageGrade = React.useMemo(() => {
+    if (totalStudents === 0 || !scores) return null;
+    let sum = 0;
+    let count = 0;
+    for (const group of groups) {
+      for (const student of group.students) {
+        const studentScores = scores[student.id];
+        if (studentScores) {
+          const values = Object.values(studentScores);
+          for (const v of values) {
+            if (typeof v === 'number' && !isNaN(v)) {
+              sum += v;
+              count++;
+            }
+          }
+        }
+      }
+    }
+    return count > 0 ? sum / count : null;
+  }, [groups, scores, totalStudents]);
+
+  // Real attendance: check if any group has attendance sessions recorded, otherwise null
+  const averageAttendance = React.useMemo(() => {
+    if (totalStudents === 0) return null;
+    try {
+      const savedAttendance = localStorage.getItem('aulagrade_attendance_records');
+      if (savedAttendance) {
+        const records = JSON.parse(savedAttendance);
+        if (records && typeof records === 'object') {
+          let presents = 0;
+          let total = 0;
+          for (const dateKey of Object.keys(records)) {
+            const dayRecords = records[dateKey];
+            if (dayRecords && typeof dayRecords === 'object') {
+              for (const status of Object.values(dayRecords)) {
+                if (status === 'present') presents++;
+                if (status === 'late') presents += 0.8;
+                total++;
+              }
+            }
+          }
+          if (total > 0) return Math.round((presents / total) * 100);
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  }, [totalStudents]);
+
   return (
     <div className="flex flex-col w-full pb-16 px-space-lg pt-space-lg">
       {/* Top Header */}
@@ -47,7 +102,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <span className="material-symbols-outlined text-sm">dashboard</span>
             <span>Gestión Académica</span>
             <span>•</span>
-            <span className="text-secondary font-semibold">Ciclo 2024-2025 • P2</span>
+            <span className="text-secondary font-semibold">{activeCycle || 'Ciclo Escolar Activo'}</span>
           </div>
           <h1 className="text-2xl font-bold text-on-surface tracking-tight">Dashboard de Grupos</h1>
           <p className="text-xs text-on-surface-variant">
@@ -70,9 +125,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="flex flex-col">
             <span className="text-[11px] text-on-surface-variant font-medium uppercase tracking-wider">Grupos Activos</span>
             <span className="text-2xl font-bold text-on-surface font-mono-numeric mt-1">{groups.length}</span>
-            <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-0.5 mt-0.5">
-              <span className="material-symbols-outlined text-xs">check_circle</span> 100% operativos
-            </span>
+            {groups.length > 0 ? (
+              <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-0.5 mt-0.5">
+                <span className="material-symbols-outlined text-xs">check_circle</span> 100% operativos
+              </span>
+            ) : (
+              <span className="text-[11px] text-slate-400 font-medium mt-0.5">
+                Sin materias registradas
+              </span>
+            )}
           </div>
           <div className="w-10 h-10 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
             <span className="material-symbols-outlined text-xl">class</span>
@@ -84,7 +145,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <span className="text-[11px] text-on-surface-variant font-medium uppercase tracking-wider">Alumnos Matriculados</span>
             <span className="text-2xl font-bold text-on-surface font-mono-numeric mt-1">{totalStudents}</span>
             <span className="text-[11px] text-on-surface-variant mt-0.5">
-              De {totalCapacity} cupos totales ({Math.round((totalStudents / (totalCapacity || 1)) * 100)}%)
+              {totalCapacity > 0
+                ? `De ${totalCapacity} cupos totales (${Math.round((totalStudents / totalCapacity) * 100)}%)`
+                : '0 cupos asignados'}
             </span>
           </div>
           <div className="w-10 h-10 rounded-lg bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center">
@@ -95,10 +158,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="bg-surface-container-lowest rounded-xl p-space-md border border-[#E2E8F0] shadow-xs flex items-center justify-between">
           <div className="flex flex-col">
             <span className="text-[11px] text-on-surface-variant font-medium uppercase tracking-wider">Promedio General</span>
-            <span className="text-2xl font-bold text-secondary font-mono-numeric mt-1">8.6 / 10</span>
-            <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-0.5 mt-0.5">
-              <span className="material-symbols-outlined text-xs">trending_up</span> +0.4 vs ciclo previo
+            <span className="text-2xl font-bold text-secondary font-mono-numeric mt-1">
+              {averageGrade !== null ? `${averageGrade.toFixed(1)} / 10` : '—'}
             </span>
+            {averageGrade !== null ? (
+              <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-0.5 mt-0.5">
+                <span className="material-symbols-outlined text-xs">trending_up</span> Promedio del ciclo
+              </span>
+            ) : (
+              <span className="text-[11px] text-slate-400 mt-0.5">
+                Sin calificaciones registradas
+              </span>
+            )}
           </div>
           <div className="w-10 h-10 rounded-lg bg-primary-container text-on-primary flex items-center justify-center">
             <span className="material-symbols-outlined text-xl">insights</span>
@@ -108,9 +179,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="bg-surface-container-lowest rounded-xl p-space-md border border-[#E2E8F0] shadow-xs flex items-center justify-between">
           <div className="flex flex-col">
             <span className="text-[11px] text-on-surface-variant font-medium uppercase tracking-wider">Asistencia Promedio</span>
-            <span className="text-2xl font-bold text-on-surface font-mono-numeric mt-1">93.8%</span>
+            <span className="text-2xl font-bold text-on-surface font-mono-numeric mt-1">
+              {averageAttendance !== null ? `${averageAttendance}%` : '—'}
+            </span>
             <span className="text-[11px] text-on-surface-variant mt-0.5">
-              Tolerancia promedio 10 min
+              {averageAttendance !== null ? 'Tolerancia promedio 10 min' : 'Sin pases de lista registrados'}
             </span>
           </div>
           <div className="w-10 h-10 rounded-lg bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center">
