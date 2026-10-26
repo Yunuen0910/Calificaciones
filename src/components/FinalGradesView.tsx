@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Group, AssignmentGrade, Student } from '../types';
+import { Group, AssignmentGrade, Student, InstitutionInfo } from '../types';
 import { NavTab } from './Sidebar';
 
 interface FinalGradesViewProps {
@@ -14,6 +14,7 @@ interface FinalGradesViewProps {
   assignments: AssignmentGrade[];
   scores: Record<string, Record<string, number>>;
   onNavigateToTab: (tab: NavTab) => void;
+  institutionInfo?: InstitutionInfo;
 }
 
 export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
@@ -23,6 +24,7 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
   assignments,
   scores,
   onNavigateToTab,
+  institutionInfo,
 }) => {
   const currentGroup = groups.find((g) => g.id === selectedGroupId) || groups[0];
 
@@ -677,15 +679,40 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
           <div className="bg-surface-container-lowest rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-[#E2E8F0] my-8 animate-fadeIn">
             {/* Boleta Header */}
             <div className="flex items-start justify-between pb-4 border-b border-[#E2E8F0]">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center">
-                  <span className="material-symbols-outlined text-xl">school</span>
-                </div>
+              <div className="flex items-center gap-3.5">
+                {institutionInfo?.logoUrl ? (
+                  <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 p-1 flex items-center justify-center shrink-0">
+                    <img
+                      src={institutionInfo.logoUrl}
+                      alt={institutionInfo.name}
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-2xl">school</span>
+                  </div>
+                )}
                 <div className="flex flex-col">
-                  <h3 className="text-base font-bold text-on-surface">Boleta Oficial de Calificaciones</h3>
-                  <span className="text-xs text-on-surface-variant">
-                    {currentGroup.name} • {currentGroup.code} ({currentGroup.section})
+                  <span className="text-[11px] font-bold text-primary uppercase tracking-wider">
+                    {institutionInfo?.name || 'AulaGrade Instituto Académico'}
                   </span>
+                  <h3 className="text-base font-extrabold text-on-surface leading-tight">
+                    Boleta Oficial de Calificaciones
+                  </h3>
+                  <div className="flex items-center gap-2 text-xs text-on-surface-variant mt-0.5 flex-wrap">
+                    <span>{institutionInfo?.campus || 'Campus Norte'}</span>
+                    {institutionInfo?.cctCode && (
+                      <>
+                        <span>•</span>
+                        <span className="font-mono">CCT: {institutionInfo.cctCode}</span>
+                      </>
+                    )}
+                    <span>•</span>
+                    <span className="font-semibold text-slate-700">
+                      {currentGroup.name} ({currentGroup.code} - {currentGroup.section})
+                    </span>
+                  </div>
                 </div>
               </div>
               <button
@@ -813,18 +840,25 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
             {/* Official Signatures Mockup */}
             <div className="grid grid-cols-2 gap-4 pt-3 border-t border-[#E2E8F0] text-center text-[10px] text-on-surface-variant">
               <div className="flex flex-col items-center">
-                <div className="w-36 border-b border-dashed border-[#94A3B8] pb-4 mb-1">
+                <div className="w-40 border-b border-dashed border-[#94A3B8] pb-4 mb-1">
                   <span className="font-script text-xs text-primary italic font-serif">Prof. Titular</span>
                 </div>
                 <span className="font-bold text-on-surface">Docente Titular de la Asignatura</span>
-                <span>AulaGrade Sistema Académico</span>
+                <span className="text-slate-500">{institutionInfo?.name || 'AulaGrade Sistema Académico'}</span>
               </div>
               <div className="flex flex-col items-center">
-                <div className="w-36 border-b border-dashed border-[#94A3B8] pb-4 mb-1 flex items-center justify-center">
+                <div className="w-40 border-b border-dashed border-[#94A3B8] pb-4 mb-1 flex items-center justify-center">
                   <span className="material-symbols-outlined text-secondary text-base">verified</span>
                 </div>
-                <span className="font-bold text-on-surface">Dirección y Control Escolar</span>
-                <span>Folio Digital: AG-{currentGroup.code}-{selectedStudentForBoleta.matricula}</span>
+                <span className="font-bold text-on-surface">
+                  {institutionInfo?.directorName || 'Dirección y Control Escolar'}
+                </span>
+                <span className="text-[9px] text-slate-500">
+                  {institutionInfo?.directorTitle || 'Directora General de Control Escolar'}
+                </span>
+                <span className="font-mono text-[9px] mt-0.5 text-slate-400">
+                  Folio: {institutionInfo?.cctCode || 'AG'}-{currentGroup.code}-{selectedStudentForBoleta.matricula}
+                </span>
               </div>
             </div>
 

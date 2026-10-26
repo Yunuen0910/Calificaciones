@@ -3,11 +3,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Group, Student, AssignmentGrade, User, AcademicCycle } from '../types';
+import { Group, Student, AssignmentGrade, User, AcademicCycle, InstitutionInfo } from '../types';
 
 export const AULAGRADE_LOGO = "https://lh3.googleusercontent.com/aida-public/AB6AXuBrDJzot0Zq1QzBsl3LvbdrD1P09b6q7vCqucMfQ3jEC-GSeneZrgp8YuVo0Ydi5tcWF3kyBvLoehp83-YOPP8jeg4KLDoGnaClRyhVuYVmXkdsW3Qn4CtQRXEuRh3uoYsy1AJfn-OewCxxxAUf82YvzbySNbV9UgxcuTHcZeZaOQmkDPy8cCNJTiMXP3id_qe-eR5SxCkIXWRMsHMlek7cyMd9YLUY2-quAYlPdM8TQcL57zvAhPw9fQ";
 
 export const PROF_AVATAR = "https://lh3.googleusercontent.com/aida-public/AB6AXuCA9XgciCHMAqtXZ1RNKG3bbZ91L1NHuLFe6O4y-U9wNHwon8rCRaUC2I3K8ZCW90e7uN02bnb0hhoz8au5kp09WzbW4vvgsP7IisEGNyvXPn2p3g3bTOrMtQdBQsrFKb5HsOoNptRS9Qr58HRkdxSCv0cSC50QJDFQG04wQXvsWbJ3JeZVcuGGZYVXkFZLSrja8KG4dIJNafb1DPoJT3MPLPXiq8I4ZRACmrodTskuLUf6oTeaQRKRFQ";
+
+export const INITIAL_INSTITUTION_INFO: InstitutionInfo = {
+  name: 'AulaGrade Instituto Académico',
+  shortName: 'AulaGrade',
+  campus: 'Campus Norte',
+  cctCode: '09DEX0142A',
+  logoUrl: AULAGRADE_LOGO,
+  address: 'Av. Universidad Tecnológica 1024, Edificio Central',
+  phone: '+52 (55) 5840-2000',
+  email: 'contacto@aulagrade.edu',
+  directorName: 'Dra. Gabriela Solís Vega',
+  directorTitle: 'Directora General y Servicios Escolares',
+};
 
 export const INITIAL_CYCLES: AcademicCycle[] = [
   {

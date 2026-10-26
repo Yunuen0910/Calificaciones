@@ -4,13 +4,14 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Group, GradingCriteria, AssignmentGrade, User, AcademicCycle } from './types';
+import { Group, GradingCriteria, AssignmentGrade, User, AcademicCycle, InstitutionInfo } from './types';
 import {
   INITIAL_GROUPS,
   INITIAL_ASSIGNMENTS,
   INITIAL_STUDENT_SCORES,
   INITIAL_USERS,
   INITIAL_CYCLES,
+  INITIAL_INSTITUTION_INFO,
 } from './data/mockData';
 import { Sidebar, NavTab } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -127,6 +128,19 @@ export default function App() {
     return INITIAL_STUDENT_SCORES;
   });
 
+  // 8. Institutional Info state
+  const [institutionInfo, setInstitutionInfo] = useState<InstitutionInfo>(() => {
+    const saved = localStorage.getItem('aulagrade_institution_info');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse saved institution info', e);
+      }
+    }
+    return INITIAL_INSTITUTION_INFO;
+  });
+
   // Synchronize to localStorage
   useEffect(() => {
     localStorage.setItem('aulagrade_users_data', JSON.stringify(users));
@@ -159,6 +173,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('aulagrade_scores_data', JSON.stringify(scores));
   }, [scores]);
+
+  useEffect(() => {
+    localStorage.setItem('aulagrade_institution_info', JSON.stringify(institutionInfo));
+  }, [institutionInfo]);
 
   // Global keyboard shortcut ⌘K
   useEffect(() => {
@@ -343,12 +361,57 @@ export default function App() {
     );
   };
 
+  // Institutional settings & Database cleanups
+  const handleUpdateInstitutionInfo = (updatedInfo: InstitutionInfo) => {
+    setInstitutionInfo(updatedInfo);
+  };
+
+  const handleClearDemoStudents = () => {
+    // Keep groups/subjects intact, but empty student lists and clear student scores
+    setGroups((prev) =>
+      prev.map((g) => ({
+        ...g,
+        students: [],
+      }))
+    );
+    setScores({});
+    localStorage.removeItem('aulagrade_scores_data');
+  };
+
+  const handleCleanSlate = () => {
+    // Production clean slate: wipe out all demo groups, assignments, and scores
+    setGroups([]);
+    setAssignments([]);
+    setScores({});
+    setSelectedGroupId('');
+    localStorage.removeItem('aulagrade_groups_data');
+    localStorage.removeItem('aulagrade_assignments_data');
+    localStorage.removeItem('aulagrade_scores_data');
+
+    // Remove group assignments from teachers
+    setUsers((prev) =>
+      prev.map((u) => ({
+        ...u,
+        assignedGroupIds: [],
+      }))
+    );
+  };
+
+  const handleResetDemoData = () => {
+    // Reload original demo subjects, students and scores
+    setGroups(INITIAL_GROUPS);
+    setAssignments(INITIAL_ASSIGNMENTS);
+    setScores(INITIAL_STUDENT_SCORES);
+    setSelectedGroupId('grp-fis-302');
+  };
+
   // Backup & Restore
   const handleExportBackup = () => {
     const backupData = {
       app: 'AulaGrade',
       version: '2.0.0',
       exportedAt: new Date().toISOString(),
+      institutionInfo,
       activeCycle,
       users,
       cycles,
@@ -374,6 +437,9 @@ export default function App() {
       const data = JSON.parse(jsonString);
       if (!data || typeof data !== 'object') return false;
 
+      if (data.institutionInfo && typeof data.institutionInfo === 'object') {
+        setInstitutionInfo(data.institutionInfo);
+      }
       if (Array.isArray(data.users)) setUsers(data.users);
       if (Array.isArray(data.cycles)) setCycles(data.cycles);
       if (Array.isArray(data.groups)) setGroups(data.groups);
@@ -396,12 +462,14 @@ export default function App() {
     localStorage.removeItem('aulagrade_assignments_data');
     localStorage.removeItem('aulagrade_scores_data');
     localStorage.removeItem('aulagrade_active_cycle');
+    localStorage.removeItem('aulagrade_institution_info');
 
     setUsers(INITIAL_USERS);
     setCycles(INITIAL_CYCLES);
     setGroups(INITIAL_GROUPS);
     setAssignments(INITIAL_ASSIGNMENTS);
     setScores(INITIAL_STUDENT_SCORES);
+    setInstitutionInfo(INITIAL_INSTITUTION_INFO);
     setActiveCycle('Ciclo 2024-2025 • P2');
     setSelectedGroupId('grp-fis-302');
   };
@@ -440,6 +508,7 @@ export default function App() {
         cycles={cycles}
         onSelectCycle={(cycle) => setActiveCycle(cycle)}
         onLogout={handleLogout}
+        institutionInfo={institutionInfo}
       />
 
       {/* Main Content Area */}
@@ -453,6 +522,7 @@ export default function App() {
           onSelectCycle={(cycle) => setActiveCycle(cycle)}
           onOpenSearch={() => setIsSearchOpen(true)}
           onOpenHelp={() => setIsHelpOpen(true)}
+          institutionInfo={institutionInfo}
         />
 
         {/* View Router */}
@@ -491,6 +561,11 @@ export default function App() {
               cycles={cycles}
               groups={groups}
               activeCycle={activeCycle}
+              institutionInfo={institutionInfo}
+              onUpdateInstitutionInfo={handleUpdateInstitutionInfo}
+              onClearDemoStudents={handleClearDemoStudents}
+              onCleanSlate={handleCleanSlate}
+              onResetDemoData={handleResetDemoData}
               onAddUser={handleAddUser}
               onUpdateUser={handleUpdateUser}
               onDeleteUser={handleDeleteUser}
@@ -561,6 +636,7 @@ export default function App() {
               onSelectGroup={(id) => setSelectedGroupId(id)}
               assignments={assignments}
               scores={scores}
+              institutionInfo={institutionInfo}
               onNavigateToTab={(tab) => setActiveTab(tab)}
             />
           )}

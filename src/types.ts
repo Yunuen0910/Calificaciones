@@ -112,3 +112,16 @@ export interface AttendanceRecord {
   notes?: string;
 }
 
+export interface InstitutionInfo {
+  name: string; // e.g. "AulaGrade Instituto Académico"
+  shortName: string; // e.g. "AulaGrade"
+  campus: string; // e.g. "Campus Norte"
+  cctCode: string; // Clave de Centro de Trabajo e.g. "09DEX0142A"
+  logoUrl: string; // Image URL or Base64 data
+  address: string; // e.g. "Av. Universidad Tecnológica 1024, Edificio Central"
+  phone: string; // e.g. "+52 (55) 5840-2000"
+  email: string; // e.g. "contacto@aulagrade.edu"
+  directorName: string; // e.g. "Dra. Gabriela Solís Vega"
+  directorTitle: string; // e.g. "Directora General y Servicios Escolares"
+}
+

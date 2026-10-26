@@ -3,14 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef } from 'react';
-import { User, AcademicCycle, Group, EvaluationStructure } from '../types';
+import React, { useState, useRef, useEffect } from 'react';
+import { User, AcademicCycle, Group, EvaluationStructure, InstitutionInfo } from '../types';
+import { AULAGRADE_LOGO } from '../data/mockData';
 
 interface AdminPanelProps {
   users: User[];
   cycles: AcademicCycle[];
   groups: Group[];
   activeCycle: string;
+  institutionInfo: InstitutionInfo;
+  onUpdateInstitutionInfo: (info: InstitutionInfo) => void;
+  onClearDemoStudents: () => void;
+  onCleanSlate: () => void;
+  onResetDemoData: () => void;
   onAddUser: (user: User) => void;
   onUpdateUser: (user: User) => void;
   onDeleteUser: (userId: string) => void;
@@ -23,13 +29,18 @@ interface AdminPanelProps {
   onUpdateGroupTeacher?: (groupId: string, teacherId: string | undefined) => void;
 }
 
-export type AdminTab = 'cycles' | 'teachers' | 'groups' | 'backup';
+export type AdminTab = 'cycles' | 'teachers' | 'groups' | 'institution' | 'backup';
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
   users,
   cycles,
   groups,
   activeCycle,
+  institutionInfo,
+  onUpdateInstitutionInfo,
+  onClearDemoStudents,
+  onCleanSlate,
+  onResetDemoData,
   onAddUser,
   onUpdateUser,
   onDeleteUser,
@@ -64,6 +75,64 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [teacherDept, setTeacherDept] = useState('Ciencias Exactas');
   const [teacherAssignedGroups, setTeacherAssignedGroups] = useState<string[]>([]);
   const [teacherFormError, setTeacherFormError] = useState('');
+
+  // Institutional Form state
+  const [instName, setInstName] = useState(institutionInfo.name);
+  const [instShortName, setInstShortName] = useState(institutionInfo.shortName);
+  const [instCampus, setInstCampus] = useState(institutionInfo.campus);
+  const [instCctCode, setInstCctCode] = useState(institutionInfo.cctCode);
+  const [instLogoUrl, setInstLogoUrl] = useState(institutionInfo.logoUrl);
+  const [instAddress, setInstAddress] = useState(institutionInfo.address);
+  const [instPhone, setInstPhone] = useState(institutionInfo.phone);
+  const [instEmail, setInstEmail] = useState(institutionInfo.email);
+  const [instDirectorName, setInstDirectorName] = useState(institutionInfo.directorName);
+  const [instDirectorTitle, setInstDirectorTitle] = useState(institutionInfo.directorTitle);
+  const [instSavedToast, setInstSavedToast] = useState(false);
+  const logoFileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setInstName(institutionInfo.name);
+    setInstShortName(institutionInfo.shortName);
+    setInstCampus(institutionInfo.campus);
+    setInstCctCode(institutionInfo.cctCode);
+    setInstLogoUrl(institutionInfo.logoUrl);
+    setInstAddress(institutionInfo.address);
+    setInstPhone(institutionInfo.phone);
+    setInstEmail(institutionInfo.email);
+    setInstDirectorName(institutionInfo.directorName);
+    setInstDirectorTitle(institutionInfo.directorTitle);
+  }, [institutionInfo]);
+
+  const handleLogoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setInstLogoUrl(event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveInstitution = (e: React.FormEvent) => {
+    e.preventDefault();
+    const updated: InstitutionInfo = {
+      name: instName.trim() || 'AulaGrade Instituto Académico',
+      shortName: instShortName.trim() || 'AulaGrade',
+      campus: instCampus.trim() || 'Campus Norte',
+      cctCode: instCctCode.trim() || '09DEX0142A',
+      logoUrl: instLogoUrl || AULAGRADE_LOGO,
+      address: instAddress.trim(),
+      phone: instPhone.trim(),
+      email: instEmail.trim(),
+      directorName: instDirectorName.trim(),
+      directorTitle: instDirectorTitle.trim(),
+    };
+    onUpdateInstitutionInfo(updated);
+    setInstSavedToast(true);
+    setTimeout(() => setInstSavedToast(false), 3000);
+  };
 
   // Import file ref
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -298,6 +367,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         </button>
 
         <button
+          onClick={() => setActiveTab('institution')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all cursor-pointer border-b-2 ${
+            activeTab === 'institution'
+              ? 'border-primary text-primary bg-white shadow-sm'
+              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/60'
+          }`}
+        >
+          <span className="material-symbols-outlined text-base">account_balance</span>
+          <span>Identidad Institucional</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('backup')}
           className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all cursor-pointer border-b-2 ${
             activeTab === 'backup'
@@ -306,7 +387,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           }`}
         >
           <span className="material-symbols-outlined text-base">cloud_sync</span>
-          <span>Respaldo y Soporte</span>
+          <span>Respaldo y Mantenimiento</span>
         </button>
       </div>
 
@@ -692,31 +773,371 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
           </div>
 
-          {/* Reset Card */}
-          <div className="bg-rose-50/60 border border-rose-200 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h4 className="text-sm font-bold text-rose-900 flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-base text-rose-600">warning</span>
-                Restablecer Base de Datos de Fábrica
-              </h4>
-              <p className="text-xs text-rose-700 mt-1">
-                Elimina los datos locales y restaura las cuentas predeterminadas de ejemplo y materias originales.
-              </p>
+          {/* Reset & Maintenance Section */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Herramientas de Mantenimiento y Modo Producción
+            </h4>
+
+            {/* Clear Demo Students Card */}
+            <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h4 className="text-sm font-bold text-amber-900 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-base text-amber-600">group_remove</span>
+                  Vaciar Matrícula de Alumnos Demo
+                </h4>
+                <p className="text-xs text-amber-700 mt-1 max-w-xl">
+                  Mantiene los grupos y materias creadas pero vacía las listas de alumnos precargados y sus calificaciones registradas. Permite inscribir a tus propios alumnos reales sin datos ficticios.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      '¿Deseas vaciar la matrícula de alumnos demo? Los grupos y materias se mantendrán, pero las listas de alumnos y calificaciones se limpiarán para que registres tus propios alumnos.'
+                    )
+                  ) {
+                    onClearDemoStudents();
+                  }
+                }}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl shadow-sm cursor-pointer transition-all shrink-0"
+              >
+                Vaciar Alumnos Demo
+              </button>
             </div>
-            <button
-              onClick={() => {
-                if (
-                  window.confirm(
-                    '¿Estás seguro de restablecer todos los datos a los valores de fábrica? Se perderán las modificaciones no respaldadas.'
-                  )
-                ) {
-                  onResetDatabase();
-                }
-              }}
-              className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-xl shadow-sm cursor-pointer transition-all shrink-0"
-            >
-              Restablecer Valores
-            </button>
+
+            {/* Clean Slate Production Card */}
+            <div className="bg-blue-50/70 border border-blue-200 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h4 className="text-sm font-bold text-blue-900 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-base text-blue-600">cleaning_services</span>
+                  Iniciar Sistema en Blanco (Modo Producción)
+                </h4>
+                <p className="text-xs text-blue-700 mt-1 max-w-xl">
+                  Elimina todos los grupos, materias, alumnos y calificaciones de ejemplo. Deja la plataforma completamente limpia y en blanco lista para iniciar las operaciones escolares de la institución. Conserva tus cuentas de usuario y ciclos escolares.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      '¿Estás seguro de poner el sistema en Modo Producción en blanco? Se eliminarán todas las materias y alumnos de prueba para que comiences desde cero.'
+                    )
+                  ) {
+                    onCleanSlate();
+                  }
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm cursor-pointer transition-all shrink-0"
+              >
+                Iniciar en Blanco
+              </button>
+            </div>
+
+            {/* Reset to Demo Data Card */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-base text-slate-600">restart_alt</span>
+                  Restablecer Datos de Demostración
+                </h4>
+                <p className="text-xs text-slate-500 mt-1 max-w-xl">
+                  Vuelve a cargar los grupos muestra de Física Cuántica, Álgebra y Química Orgánica con sus alumnos y calificaciones de ejemplo para demostraciones o capacitación de docentes.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      '¿Deseas recargar los datos de prueba y alumnos de demostración?'
+                    )
+                  ) {
+                    onResetDemoData();
+                  }
+                }}
+                className="px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl shadow-sm cursor-pointer transition-all shrink-0"
+              >
+                Cargar Datos Demo
+              </button>
+            </div>
+
+            {/* Factory Reset Card */}
+            <div className="bg-rose-50/60 border border-rose-200 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h4 className="text-sm font-bold text-rose-900 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-base text-rose-600">warning</span>
+                  Restablecer Base de Datos de Fábrica
+                </h4>
+                <p className="text-xs text-rose-700 mt-1 max-w-xl">
+                  Elimina los datos locales y restaura las cuentas predeterminadas de ejemplo y materias originales.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      '¿Estás seguro de restablecer todos los datos a los valores de fábrica? Se perderán las modificaciones no respaldadas.'
+                    )
+                  ) {
+                    onResetDatabase();
+                  }
+                }}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-xl shadow-sm cursor-pointer transition-all shrink-0"
+              >
+                Restablecer Fábrica
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: IDENTIDAD INSTITUCIONAL */}
+      {activeTab === 'institution' && (
+        <div className="space-y-6">
+          {/* Header Card */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-2xl">account_balance</span>
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Identidad Institucional y Membrete Oficial
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Personaliza el nombre de la escuela, campus/plantel, logotipo institucional y datos oficiales para boletas, reportes y encabezados.
+                  </p>
+                </div>
+              </div>
+
+              {instSavedToast && (
+                <div className="px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+                  <span className="material-symbols-outlined text-base">check_circle</span>
+                  <span>¡Datos institucionales actualizados correctamente!</span>
+                </div>
+              )}
+            </div>
+
+            <form onSubmit={handleSaveInstitution} className="mt-6 space-y-6">
+              {/* Logo Section */}
+              <div className="p-5 bg-slate-50 border border-slate-200/80 rounded-2xl">
+                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-3">
+                  Logotipo Oficial de la Institución
+                </label>
+                <div className="flex flex-col sm:flex-row items-center gap-6">
+                  {/* Preview */}
+                  <div className="w-24 h-24 rounded-2xl bg-white border border-slate-200 p-2 flex items-center justify-center shadow-inner shrink-0 relative group">
+                    <img
+                      src={instLogoUrl}
+                      alt="Logo Institucional"
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  </div>
+
+                  <div className="flex-1 w-full space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                        URL de la Imagen o Logo
+                      </label>
+                      <input
+                        type="url"
+                        placeholder="https://ejemplo.com/logo-escuela.png"
+                        value={instLogoUrl}
+                        onChange={(e) => setInstLogoUrl(e.target.value)}
+                        className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        ref={logoFileInputRef}
+                        onChange={handleLogoFileUpload}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => logoFileInputRef.current?.click()}
+                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
+                      >
+                        <span className="material-symbols-outlined text-sm">upload</span>
+                        <span>Subir Imagen desde el Equipo</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setInstLogoUrl(AULAGRADE_LOGO)}
+                        className="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg text-xs font-semibold cursor-pointer transition-all"
+                      >
+                        Restablecer Logo AulaGrade
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="text-[11px] text-slate-400 font-medium">Logos sugeridos:</span>
+                      <button
+                        type="button"
+                        onClick={() => setInstLogoUrl('https://images.unsplash.com/photo-1546410531-bb4caa6b424d?auto=format&fit=crop&w=200&q=80')}
+                        className="text-[11px] text-primary hover:underline font-semibold cursor-pointer"
+                      >
+                        Academia Moderna
+                      </button>
+                      <span className="text-slate-300">•</span>
+                      <button
+                        type="button"
+                        onClick={() => setInstLogoUrl('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=200&q=80')}
+                        className="text-[11px] text-primary hover:underline font-semibold cursor-pointer"
+                      >
+                        Universidad
+                      </button>
+                      <span className="text-slate-300">•</span>
+                      <button
+                        type="button"
+                        onClick={() => setInstLogoUrl('https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=200&q=80')}
+                        className="text-[11px] text-primary hover:underline font-semibold cursor-pointer"
+                      >
+                        Colegio Técnico
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* General School Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Nombre Oficial de la Institución
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={instName}
+                    onChange={(e) => setInstName(e.target.value)}
+                    placeholder="ej. Instituto Tecnológico y Académico Nacional"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Nombre Corto / Siglas
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={instShortName}
+                    onChange={(e) => setInstShortName(e.target.value)}
+                    placeholder="ej. AulaGrade / ITAN"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Campus / Plantel / Sede
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={instCampus}
+                    onChange={(e) => setInstCampus(e.target.value)}
+                    placeholder="ej. Campus Central / Plantel 01"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Clave de Centro de Trabajo (CCT / RVOE)
+                  </label>
+                  <input
+                    type="text"
+                    value={instCctCode}
+                    onChange={(e) => setInstCctCode(e.target.value)}
+                    placeholder="ej. 09DEX0142A"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Dirección Institucional
+                  </label>
+                  <input
+                    type="text"
+                    value={instAddress}
+                    onChange={(e) => setInstAddress(e.target.value)}
+                    placeholder="ej. Av. Universidad 1200, Col. del Valle"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Teléfono Oficial
+                  </label>
+                  <input
+                    type="text"
+                    value={instPhone}
+                    onChange={(e) => setInstPhone(e.target.value)}
+                    placeholder="ej. +52 (55) 5544-3322"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Correo Electrónico de Contacto
+                  </label>
+                  <input
+                    type="email"
+                    value={instEmail}
+                    onChange={(e) => setInstEmail(e.target.value)}
+                    placeholder="ej. contacto@escuela.edu"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Nombre del Director(a) o Titular
+                  </label>
+                  <input
+                    type="text"
+                    value={instDirectorName}
+                    onChange={(e) => setInstDirectorName(e.target.value)}
+                    placeholder="ej. Dra. María Eugenia Morales"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Cargo Oficial para Firmas y Boletas
+                  </label>
+                  <input
+                    type="text"
+                    value={instDirectorTitle}
+                    onChange={(e) => setInstDirectorTitle(e.target.value)}
+                    placeholder="ej. Directora General de Control Escolar"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-primary hover:bg-primary/95 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-2 cursor-pointer transition-all"
+                >
+                  <span className="material-symbols-outlined text-base">save</span>
+                  <span>Guardar Cambios Institucionales</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

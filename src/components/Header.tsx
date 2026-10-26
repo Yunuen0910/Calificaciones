@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { User, AcademicCycle } from '../types';
+import { User, AcademicCycle, InstitutionInfo } from '../types';
 import { PROF_AVATAR } from '../data/mockData';
 
 interface HeaderProps {
@@ -16,6 +16,7 @@ interface HeaderProps {
   onOpenSearch: () => void;
   onOpenHelp: () => void;
   unreadNotificationsCount?: number;
+  institutionInfo?: InstitutionInfo;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -27,6 +28,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSearch,
   onOpenHelp,
   unreadNotificationsCount = 2,
+  institutionInfo,
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -132,6 +134,22 @@ export const Header: React.FC<HeaderProps> = ({
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Institution Campus Tag */}
+          {institutionInfo && (
+            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100/80 border border-slate-200/80 rounded-lg text-xs text-slate-600 font-medium">
+              <span className="material-symbols-outlined text-sm text-secondary">
+                account_balance
+              </span>
+              <span className="truncate max-w-[140px] font-semibold text-slate-700">
+                {institutionInfo.shortName}
+              </span>
+              <span className="text-slate-300">•</span>
+              <span className="text-[11px] text-slate-500 truncate max-w-[120px]">
+                {institutionInfo.campus}
+              </span>
             </div>
           )}
         </div>

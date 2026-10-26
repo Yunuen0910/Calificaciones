@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { User, AcademicCycle } from '../types';
+import { User, AcademicCycle, InstitutionInfo } from '../types';
 import { AULAGRADE_LOGO } from '../data/mockData';
 
 export type NavTab =
@@ -24,6 +24,7 @@ interface SidebarProps {
   cycles: AcademicCycle[];
   onSelectCycle: (cycle: string) => void;
   onLogout: () => void;
+  institutionInfo?: InstitutionInfo;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -34,16 +35,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
   cycles,
   onSelectCycle,
   onLogout,
+  institutionInfo,
 }) => {
   const [showCycleMenu, setShowCycleMenu] = React.useState(false);
-  const [selectedCampus, setSelectedCampus] = React.useState('Campus Norte');
+  const [selectedCampus, setSelectedCampus] = React.useState(
+    institutionInfo?.campus || 'Campus Norte'
+  );
   const [showCampusMenu, setShowCampusMenu] = React.useState(false);
 
+  React.useEffect(() => {
+    if (institutionInfo?.campus) {
+      setSelectedCampus(institutionInfo.campus);
+    }
+  }, [institutionInfo?.campus]);
+
   const campuses = [
-    'Campus Norte',
+    institutionInfo?.campus || 'Campus Norte',
     'Campus Sur',
     'Campus Virtual'
-  ];
+  ].filter((v, i, a) => a.indexOf(v) === i);
 
   const isAdmin = currentUser?.role === 'admin';
 
@@ -54,18 +64,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="h-16 px-space-md flex items-center justify-between bg-surface-container-lowest border-b border-[#E2E8F0]">
           <button 
             onClick={() => onSelectTab(isAdmin ? 'admin-panel' : 'dashboard')}
-            className="flex items-center gap-space-sm text-left group focus:outline-none cursor-pointer"
+            className="flex items-center gap-space-sm text-left group focus:outline-none cursor-pointer overflow-hidden"
           >
             <img 
-              alt="AulaGrade Logo" 
-              className="h-8 w-auto object-contain transition-transform group-hover:scale-105" 
-              src={AULAGRADE_LOGO} 
+              alt={institutionInfo?.name || "AulaGrade Logo"} 
+              className="h-8 max-w-[42px] object-contain transition-transform group-hover:scale-105 shrink-0 rounded" 
+              src={institutionInfo?.logoUrl || AULAGRADE_LOGO} 
             />
-            <div className="flex flex-col">
-              <span className="font-bold text-lg text-primary tracking-tight leading-none">AulaGrade</span>
-              {isAdmin && (
-                <span className="text-[10px] text-amber-700 font-bold tracking-wider uppercase mt-0.5">
+            <div className="flex flex-col min-w-0">
+              <span className="font-bold text-base text-primary tracking-tight leading-tight truncate">
+                {institutionInfo?.shortName || 'AulaGrade'}
+              </span>
+              {isAdmin ? (
+                <span className="text-[10px] text-amber-700 font-bold tracking-wider uppercase">
                   Admin
+                </span>
+              ) : (
+                <span className="text-[10px] text-slate-400 font-medium truncate">
+                  {institutionInfo?.campus || 'Portal Docente'}
                 </span>
               )}
             </div>

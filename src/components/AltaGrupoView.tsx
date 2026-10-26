@@ -63,8 +63,8 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
   const [gradeScale, setGradeScale] = useState<'decimal' | 'centesimal' | 'letters'>('decimal');
   const [minPassingGrade, setMinPassingGrade] = useState(7.0);
 
-  // Roster
-  const [students, setStudents] = useState<Student[]>(INITIAL_STUDENTS.slice(0, 4));
+  // Roster - start empty for real school use
+  const [students, setStudents] = useState<Student[]>([]);
   const [activeEnrollTab, setActiveEnrollTab] = useState<'upload' | 'sis' | 'manual'>('upload');
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [showSisSyncModal, setShowSisSyncModal] = useState(false);
@@ -1067,21 +1067,44 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
 
             {/* Live Preview of Loaded Roster */}
             <div className="flex flex-col gap-space-xs">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-space-sm">
-                  <span className="text-xs font-bold text-on-surface">Alumnos Listos para Inscripción</span>
-                  <span className="px-space-xs py-0.5 rounded-full bg-primary-container text-on-primary font-mono-numeric text-xs font-semibold">
-                    {students.length} precargados
+                  <span className="text-xs font-bold text-on-surface">Alumnos a Matricular</span>
+                  <span className={`px-2 py-0.5 rounded-full font-mono-numeric text-xs font-semibold ${
+                    students.length > 0 ? 'bg-primary-container text-on-primary' : 'bg-slate-200 text-slate-600'
+                  }`}>
+                    {students.length} registrados
                   </span>
                 </div>
-                <button 
-                  onClick={() => setShowAddStudentModal(true)}
-                  className="text-secondary text-xs font-semibold hover:underline flex items-center gap-0.5 cursor-pointer" 
-                  type="button"
-                >
-                  <span className="material-symbols-outlined text-sm">add</span>
-                  <span>Añadir fila</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  {students.length === 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => setStudents(INITIAL_STUDENTS.slice(0, 4))}
+                      className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-sm">group_add</span>
+                      <span>Cargar 4 Alumnos Demo</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setStudents([])}
+                      className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-sm">clear_all</span>
+                      <span>Vaciar Lista</span>
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => setShowAddStudentModal(true)}
+                    className="px-2.5 py-1 bg-surface-container text-secondary text-xs font-semibold rounded-lg hover:bg-surface-container-high flex items-center gap-1 cursor-pointer" 
+                    type="button"
+                  >
+                    <span className="material-symbols-outlined text-sm">add</span>
+                    <span>Añadir alumno</span>
+                  </button>
+                </div>
               </div>
 
               {/* Quick Table */}
@@ -1090,10 +1113,19 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
                   <div className="col-span-3">Matrícula</div>
                   <div className="col-span-5">Estudiante</div>
                   <div className="col-span-3">Correo Institucional</div>
-                  <div className="col-span-1 text-right">Estado</div>
+                  <div className="col-span-1 text-right">Acción</div>
                 </div>
 
-                {students.map((student, idx) => (
+                {students.length === 0 ? (
+                  <div className="py-8 px-4 text-center">
+                    <span className="material-symbols-outlined text-3xl text-slate-300 mb-1">person_off</span>
+                    <p className="text-xs font-semibold text-slate-700">Sin alumnos registrados aún</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Arrastra tu archivo Excel/CSV arriba, pulsa &ldquo;Añadir alumno&rdquo; o &ldquo;Cargar 4 Alumnos Demo&rdquo; si deseas probar el sistema.
+                    </p>
+                  </div>
+                ) : (
+                  students.map((student, idx) => (
                   <div 
                     key={student.id}
                     className={`grid grid-cols-12 gap-space-xs px-space-md py-2 items-center hover:bg-surface-container-low transition-colors ${
@@ -1138,7 +1170,8 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
                       </button>
                     </div>
                   </div>
-                ))}
+                ))
+              )}
               </div>
             </div>
           </section>
