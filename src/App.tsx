@@ -27,6 +27,24 @@ import { CriteriaView } from './components/CriteriaView';
 import { SearchModal } from './components/SearchModal';
 import { HelpModal } from './components/HelpModal';
 import { SuccessCreatedModal } from './components/SuccessCreatedModal';
+import {
+  testConnection,
+  subscribeToSchools,
+  subscribeToUsers,
+  subscribeToCycles,
+  subscribeToGroups,
+  subscribeToAssignments,
+  subscribeToScores,
+  syncSchoolToCloud,
+  deleteSchoolFromCloud,
+  syncUserToCloud,
+  deleteUserFromCloud,
+  syncCycleToCloud,
+  syncGroupToCloud,
+  syncAssignmentToCloud,
+  syncScoresToCloud,
+  seedInitialCloudDataIfEmpty,
+} from './firebase';
 
 export default function App() {
   // 1. Users state
@@ -52,8 +70,8 @@ export default function App() {
         console.error('Failed to parse auth user', e);
       }
     }
-    // Default to the teacher Carlos Mendoza for convenience or null if clean start
-    return INITIAL_USERS.find((u) => u.email === 'c.mendoza@aulagrade.edu') || INITIAL_USERS[0];
+    // Require login for new visitors or clean starts
+    return null;
   });
 
   // 3. Academic Cycles state
@@ -208,6 +226,60 @@ export default function App() {
     localStorage.setItem('aulagrade_active_school_id', activeSchoolId);
   }, [activeSchoolId]);
 
+  // Firebase Firestore real-time cloud sync
+  useEffect(() => {
+    // 1. Check connection and seed initial cloud database if empty
+    testConnection();
+    seedInitialCloudDataIfEmpty(
+      INITIAL_SCHOOLS,
+      INITIAL_USERS,
+      INITIAL_CYCLES,
+      INITIAL_GROUPS,
+      INITIAL_ASSIGNMENTS,
+      INITIAL_STUDENT_SCORES
+    );
+
+    // 2. Real-time subscriptions across all devices and teachers
+    const unsubSchools = subscribeToSchools((cloudSchools) => {
+      if (cloudSchools.length > 0) {
+        setSchools(cloudSchools);
+      }
+    });
+
+    const unsubUsers = subscribeToUsers((cloudUsers) => {
+      if (cloudUsers.length > 0) {
+        setUsers(cloudUsers);
+      }
+    });
+
+    const unsubCycles = subscribeToCycles((cloudCycles) => {
+      if (cloudCycles.length > 0) {
+        setCycles(cloudCycles);
+      }
+    });
+
+    const unsubGroups = subscribeToGroups((cloudGroups) => {
+      setGroups(cloudGroups);
+    });
+
+    const unsubAssignments = subscribeToAssignments((cloudAssignments) => {
+      setAssignments(cloudAssignments);
+    });
+
+    const unsubScores = subscribeToScores((cloudScores) => {
+      setScores(cloudScores);
+    });
+
+    return () => {
+      unsubSchools();
+      unsubUsers();
+      unsubCycles();
+      unsubGroups();
+      unsubAssignments();
+      unsubScores();
+    };
+  }, []);
+
   // Global keyboard shortcut ⌘K
   useEffect(() => {
     const handleGlobalKey = (e: KeyboardEvent) => {
@@ -269,41 +341,46 @@ export default function App() {
     setGroups((prev) => [newGroup, ...prev]);
     setSelectedGroupId(newGroup.id);
     setNewlyCreatedGroup(newGroup);
+    syncGroupToCloud(newGroup);
 
     // Also link group to current teacher if logged in
     if (currentUser && currentUser.role === 'teacher') {
+      const updatedTeacher = {
+        ...currentUser,
+        assignedGroupIds: [...(currentUser.assignedGroupIds || []), newGroup.id],
+      };
       setUsers((prev) =>
-        prev.map((u) =>
-          u.id === currentUser.id
-            ? {
-                ...u,
-                assignedGroupIds: [...(u.assignedGroupIds || []), newGroup.id],
-              }
-            : u
-        )
+        prev.map((u) => (u.id === currentUser.id ? updatedTeacher : u))
       );
+      syncUserToCloud(updatedTeacher);
     }
   };
 
   // Update criteria for a group
   const handleUpdateCriteria = (groupId: string, criteria: GradingCriteria) => {
-    setGroups((prev) =>
-      prev.map((g) => (g.id === groupId ? { ...g, criteria } : g))
-    );
+    setGroups((prev) => {
+      const updated = prev.map((g) => (g.id === groupId ? { ...g, criteria } : g));
+      const target = updated.find((g) => g.id === groupId);
+      if (target) syncGroupToCloud(target);
+      return updated;
+    });
   };
 
   // Admin user operations
   const handleAddUser = (newUser: User) => {
     setUsers((prev) => [newUser, ...prev]);
+    syncUserToCloud(newUser);
     if (newUser.role === 'teacher' && newUser.assignedGroupIds && newUser.assignedGroupIds.length > 0) {
       setGroups((prevGroups) =>
         prevGroups.map((g) => {
           if (newUser.assignedGroupIds?.includes(g.id)) {
-            return {
+            const updated = {
               ...g,
               teacherId: newUser.id,
               teacherName: newUser.name,
             };
+            syncGroupToCloud(updated);
+            return updated;
           }
           return g;
         })
@@ -315,22 +392,27 @@ export default function App() {
     setUsers((prev) =>
       prev.map((u) => (u.id === updatedUser.id ? updatedUser : u))
     );
+    syncUserToCloud(updatedUser);
     if (updatedUser.role === 'teacher') {
       setGroups((prevGroups) =>
         prevGroups.map((g) => {
           const isAssigned = updatedUser.assignedGroupIds?.includes(g.id);
           if (isAssigned) {
-            return {
+            const updated = {
               ...g,
               teacherId: updatedUser.id,
               teacherName: updatedUser.name,
             };
+            syncGroupToCloud(updated);
+            return updated;
           } else if (g.teacherId === updatedUser.id) {
-            return {
+            const updated = {
               ...g,
               teacherId: undefined,
               teacherName: undefined,
             };
+            syncGroupToCloud(updated);
+            return updated;
           }
           return g;
         })
@@ -343,13 +425,17 @@ export default function App() {
 
   const handleDeleteUser = (userId: string) => {
     setUsers((prev) => prev.filter((u) => u.id !== userId));
+    deleteUserFromCloud(userId);
     // Clear teacher from groups
     setGroups((prev) =>
-      prev.map((g) =>
-        g.teacherId === userId
-          ? { ...g, teacherId: undefined, teacherName: undefined }
-          : g
-      )
+      prev.map((g) => {
+        if (g.teacherId === userId) {
+          const updated = { ...g, teacherId: undefined, teacherName: undefined };
+          syncGroupToCloud(updated);
+          return updated;
+        }
+        return g;
+      })
     );
   };
 
@@ -360,36 +446,44 @@ export default function App() {
     setUsers((prev) =>
       prev.map((u) => (u.id === currentUser.id ? updatedUser : u))
     );
+    syncUserToCloud(updatedUser);
   };
 
   const handleUpdateGroupTeacher = (groupId: string, teacherId: string | undefined) => {
     const teacher = users.find((u) => u.id === teacherId);
     setGroups((prev) =>
-      prev.map((g) =>
-        g.id === groupId
-          ? {
-              ...g,
-              teacherId: teacher ? teacher.id : undefined,
-              teacherName: teacher ? teacher.name : undefined,
-            }
-          : g
-      )
+      prev.map((g) => {
+        if (g.id === groupId) {
+          const updated = {
+            ...g,
+            teacherId: teacher ? teacher.id : undefined,
+            teacherName: teacher ? teacher.name : undefined,
+          };
+          syncGroupToCloud(updated);
+          return updated;
+        }
+        return g;
+      })
     );
     setUsers((prev) =>
       prev.map((u) => {
         if (teacherId && u.id === teacherId) {
           const currentAssigned = u.assignedGroupIds || [];
-          return {
+          const updated = {
             ...u,
             assignedGroupIds: currentAssigned.includes(groupId)
               ? currentAssigned
               : [...currentAssigned, groupId],
           };
+          syncUserToCloud(updated);
+          return updated;
         } else if (u.assignedGroupIds?.includes(groupId)) {
-          return {
+          const updated = {
             ...u,
             assignedGroupIds: u.assignedGroupIds.filter((id) => id !== groupId),
           };
+          syncUserToCloud(updated);
+          return updated;
         }
         return u;
       })
@@ -399,29 +493,34 @@ export default function App() {
   // Admin cycle operations
   const handleAddCycle = (newCycle: AcademicCycle) => {
     setCycles((prev) => [newCycle, ...prev]);
+    syncCycleToCloud(newCycle);
   };
 
   const handleUpdateCycle = (updatedCycle: AcademicCycle) => {
     setCycles((prev) =>
       prev.map((c) => (c.id === updatedCycle.id ? updatedCycle : c))
     );
+    syncCycleToCloud(updatedCycle);
   };
 
   // Multi-School / Planteles management
   const handleAddSchool = (newSchool: InstitutionInfo) => {
     setSchools((prev) => [...prev, newSchool]);
     setActiveSchoolId(newSchool.id);
+    syncSchoolToCloud(newSchool);
   };
 
   const handleUpdateSchool = (updatedSchool: InstitutionInfo) => {
     setSchools((prev) =>
       prev.map((s) => (s.id === updatedSchool.id ? updatedSchool : s))
     );
+    syncSchoolToCloud(updatedSchool);
   };
 
   const handleDeleteSchool = (schoolId: string) => {
     if (schools.length <= 1) return;
     setSchools((prev) => prev.filter((s) => s.id !== schoolId));
+    deleteSchoolFromCloud(schoolId);
     if (activeSchoolId === schoolId) {
       const remaining = schools.filter((s) => s.id !== schoolId);
       setActiveSchoolId(remaining[0]?.id || 'school-1');
@@ -430,6 +529,28 @@ export default function App() {
 
   const handleSelectActiveSchool = (schoolId: string) => {
     setActiveSchoolId(schoolId);
+  };
+
+  const handleAssignmentsChange = (
+    action: React.SetStateAction<AssignmentGrade[]>
+  ) => {
+    setAssignments((prev) => {
+      const next = typeof action === 'function' ? action(prev) : action;
+      next.forEach((a) => syncAssignmentToCloud(a));
+      return next;
+    });
+  };
+
+  const handleScoresChange = (
+    action: React.SetStateAction<Record<string, Record<string, number>>>
+  ) => {
+    setScores((prev) => {
+      const next = typeof action === 'function' ? action(prev) : action;
+      Object.entries(next).forEach(([grpId, studentMap]) => {
+        syncScoresToCloud(grpId, studentMap);
+      });
+      return next;
+    });
   };
 
   const handleClearDemoStudents = () => {
@@ -717,9 +838,9 @@ export default function App() {
               onSelectGroup={(id) => setSelectedGroupId(id)}
               onOpenCreateGroup={() => setActiveTab('alta-grupo')}
               assignments={assignments}
-              setAssignments={setAssignments}
+              setAssignments={handleAssignmentsChange}
               scores={scores}
-              setScores={setScores}
+              setScores={handleScoresChange}
               onNavigateToFinalGrades={() => setActiveTab('calificaciones-finales')}
             />
           )}

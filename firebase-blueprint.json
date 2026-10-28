@@ -1,0 +1,137 @@
+{
+  "entities": {
+    "School": {
+      "title": "School",
+      "description": "Represents an educational institution or campus",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "shortName": { "type": "string" },
+        "campus": { "type": "string" },
+        "cctCode": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "directorName": { "type": "string" },
+        "directorTitle": { "type": "string" }
+      },
+      "required": ["id", "name", "campus"]
+    },
+    "User": {
+      "title": "User",
+      "description": "Represents an administrator or teacher in the system",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "password": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "teacher"] },
+        "department": { "type": "string" },
+        "assignedGroupIds": { "type": "array" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "role"]
+    },
+    "Cycle": {
+      "title": "Cycle",
+      "description": "Represents an academic school cycle or period",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "upcoming", "closed"] },
+        "periodStructure": { "type": "string" },
+        "periodsCount": { "type": "number" }
+      },
+      "required": ["id", "name", "status"]
+    },
+    "Group": {
+      "title": "Group",
+      "description": "Represents a class, subject, roster, and grading criteria",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "schoolId": { "type": "string" },
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "educationLevel": { "type": "string" },
+        "semester": { "type": "string" },
+        "section": { "type": "string" },
+        "shift": { "type": "string" },
+        "academicCycle": { "type": "string" },
+        "cycleId": { "type": "string" },
+        "teacherId": { "type": "string" },
+        "teacherName": { "type": "string" },
+        "classroom": { "type": "string" },
+        "capacity": { "type": "number" },
+        "syncCalendar": { "type": "boolean" },
+        "lateTolerance": { "type": "string" },
+        "schedule": { "type": "array" },
+        "criteria": { "type": "object" },
+        "students": { "type": "array" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "code", "schoolId"]
+    },
+    "Assignment": {
+      "title": "Assignment",
+      "description": "Represents a gradable task, exam, homework, or participation item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "groupId": { "type": "string" },
+        "title": { "type": "string" },
+        "period": { "type": "string" },
+        "type": { "type": "string" },
+        "weight": { "type": "number" },
+        "date": { "type": "string" },
+        "maxScore": { "type": "number" },
+        "rubric": { "type": "string" },
+        "isEvaluated": { "type": "boolean" }
+      },
+      "required": ["id", "groupId", "title"]
+    },
+    "ScoreRecord": {
+      "title": "ScoreRecord",
+      "description": "Represents recorded student scores for a group",
+      "type": "object",
+      "properties": {
+        "groupId": { "type": "string" },
+        "studentScores": { "type": "object" }
+      },
+      "required": ["groupId"]
+    }
+  },
+  "firestore": {
+    "/schools/{schoolId}": {
+      "schema": { "$ref": "School" },
+      "description": "Collection of schools and campuses"
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "User" },
+      "description": "Collection of registered teachers and administrators"
+    },
+    "/cycles/{cycleId}": {
+      "schema": { "$ref": "Cycle" },
+      "description": "Collection of academic periods"
+    },
+    "/groups/{groupId}": {
+      "schema": { "$ref": "Group" },
+      "description": "Collection of subjects, groups, rosters, and criteria"
+    },
+    "/assignments/{assignmentId}": {
+      "schema": { "$ref": "Assignment" },
+      "description": "Collection of grading tasks per group"
+    },
+    "/scores/{groupId}": {
+      "schema": { "$ref": "ScoreRecord" },
+      "description": "Collection of recorded student grade matrices"
+    }
+  }
+}
