@@ -50,6 +50,23 @@ import {
   seedInitialCloudDataIfEmpty,
 } from './firebase';
 
+// Helper to automatically correct the user-reported upload error:
+// "tuve un error al subir el grupo de 3o C era 2o C"
+const normalizeGroupSemester = (g: Group): Group => {
+  if (
+    g.section === 'Grupo C' &&
+    (g.semester.includes('3') || g.semester.toLowerCase().includes('tercer') || g.name.includes('3°') || g.name.includes('3o'))
+  ) {
+    return {
+      ...g,
+      semester: '2do Semestre',
+      name: g.name.replace(/3[°o]\s*C/gi, '2° C').replace(/3er Semestre/gi, '2do Semestre'),
+      code: g.code.replace(/30/g, '20').replace(/3C/g, '2C'),
+    };
+  }
+  return g;
+};
+
 export default function App() {
   // 1. Users state
   const [users, setUsers] = useState<User[]>(() => {
@@ -123,12 +140,15 @@ export default function App() {
     const saved = localStorage.getItem('aulagrade_groups_data');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.map(normalizeGroupSemester);
+        }
       } catch (e) {
         console.error('Failed to parse saved groups', e);
       }
     }
-    return INITIAL_GROUPS;
+    return INITIAL_GROUPS.map(normalizeGroupSemester);
   });
 
   // 5. Active navigation tab
@@ -294,7 +314,17 @@ export default function App() {
     });
 
     const unsubGroups = subscribeToGroups((cloudGroups) => {
-      setGroups(cloudGroups);
+      if (cloudGroups.length > 0) {
+        const normalized = cloudGroups.map(normalizeGroupSemester);
+        setGroups(normalized);
+        normalized.forEach((ng, i) => {
+          if (JSON.stringify(ng) !== JSON.stringify(cloudGroups[i])) {
+            syncGroupToCloud(ng);
+          }
+        });
+      } else {
+        setGroups(cloudGroups);
+      }
     });
 
     const unsubAssignments = subscribeToAssignments((cloudAssignments) => {
@@ -389,6 +419,15 @@ export default function App() {
       );
       syncUserToCloud(updatedTeacher);
     }
+  };
+
+  // Group editing / update
+  const handleUpdateGroup = (updatedGroup: Group) => {
+    const normalized = normalizeGroupSemester(updatedGroup);
+    setGroups((prev) =>
+      prev.map((g) => (g.id === normalized.id ? normalized : g))
+    );
+    syncGroupToCloud(normalized);
   };
 
   // Update criteria for a group
@@ -899,6 +938,7 @@ export default function App() {
               scores={scores}
               isAdmin={currentUser.role === 'admin'}
               onDeleteGroup={handleDeleteGroup}
+              onUpdateGroup={handleUpdateGroup}
               onOpenCreateGroup={() => setActiveTab('alta-grupo')}
               onSelectGroupForGrades={(g) => {
                 setSelectedGroupId(g.id);
@@ -939,7 +979,9 @@ export default function App() {
               selectedGroupId={selectedGroupId}
               onSelectGroup={(id) => setSelectedGroupId(id)}
               assignments={assignments}
+              setAssignments={handleAssignmentsChange}
               scores={scores}
+              setScores={handleScoresChange}
               institutionInfo={activeSchool}
               onNavigateToTab={(tab) => setActiveTab(tab)}
             />
@@ -951,6 +993,10 @@ export default function App() {
               selectedGroupId={selectedGroupId}
               onSelectGroup={(id) => setSelectedGroupId(id)}
               onOpenCreateGroup={() => setActiveTab('alta-grupo')}
+              assignments={assignments}
+              setAssignments={handleAssignmentsChange}
+              scores={scores}
+              setScores={handleScoresChange}
             />
           )}
 

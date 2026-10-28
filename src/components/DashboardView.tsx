@@ -16,6 +16,7 @@ interface DashboardViewProps {
   onSelectGroupForCriteria: (group: Group) => void;
   onSelectGroupForFinalGrades?: (group: Group) => void;
   onDeleteGroup?: (groupId: string) => void;
+  onUpdateGroup?: (updatedGroup: Group) => void;
   isAdmin?: boolean;
 }
 
@@ -29,10 +30,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onSelectGroupForCriteria,
   onSelectGroupForFinalGrades,
   onDeleteGroup,
+  onUpdateGroup,
   isAdmin,
 }) => {
   const [filterShift, setFilterShift] = useState<'Todos' | 'Matutino' | 'Vespertino' | 'Mixto'>('Todos');
   const [searchQuery, setSearchQuery] = useState('');
+  const [groupToEdit, setGroupToEdit] = useState<Group | null>(null);
+  const [editSuccessToast, setEditSuccessToast] = useState(false);
 
   const filteredGroups = groups.filter((g) => {
     const matchesShift = filterShift === 'Todos' || g.shift === filterShift;
@@ -361,6 +365,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   </button>
                 )}
 
+                {onUpdateGroup && (
+                  <button
+                    onClick={() => setGroupToEdit({ ...group })}
+                    className="p-1.5 rounded-lg text-outline hover:text-primary hover:bg-surface-container-high transition-colors cursor-pointer"
+                    title="Editar información del grupo (Semestre, Sección, Aula, Nombre...)"
+                  >
+                    <span className="material-symbols-outlined text-base">edit</span>
+                  </button>
+                )}
+
                 <button
                   onClick={() => onSelectGroupForCriteria(group)}
                   className="p-1.5 rounded-lg text-outline hover:text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer"
@@ -391,6 +405,155 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           );
         })}
       </div>
+      )}
+
+      {/* Toast Feedback */}
+      {editSuccessToast && (
+        <div className="fixed top-20 right-8 z-50 bg-[#1E3A8A] text-white px-4 py-3 rounded-lg shadow-xl flex items-center gap-2 text-xs font-semibold animate-fade-in">
+          <span className="material-symbols-outlined text-base">check_circle</span>
+          <span>Información del grupo actualizada correctamente.</span>
+        </div>
+      )}
+
+      {/* Modal: Editar Grupo (Permite corregir semestre, sección como 2° C, aula, etc.) */}
+      {groupToEdit && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-surface-container-lowest rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-[#CBD5E1] animate-fadeIn">
+            <div className="flex items-center justify-between pb-3 border-b border-[#F1F5F9]">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-xl">edit_square</span>
+                <h3 className="text-sm font-bold text-on-surface">Editar Información del Grupo</h3>
+              </div>
+              <button
+                onClick={() => setGroupToEdit(null)}
+                className="text-outline hover:text-on-surface cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-base">close</span>
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!groupToEdit.name.trim() || !groupToEdit.code.trim()) return;
+                if (onUpdateGroup) {
+                  onUpdateGroup(groupToEdit);
+                }
+                setGroupToEdit(null);
+                setEditSuccessToast(true);
+                setTimeout(() => setEditSuccessToast(false), 3000);
+              }}
+              className="flex flex-col gap-3 pt-4 text-xs"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="font-semibold text-on-surface">Nombre de la Asignatura *</label>
+                  <input
+                    required
+                    value={groupToEdit.name}
+                    onChange={(e) => setGroupToEdit({ ...groupToEdit, name: e.target.value })}
+                    className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1] font-medium"
+                    placeholder="Ej. Física Cuántica I"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-semibold text-on-surface">Código / Clave *</label>
+                  <input
+                    required
+                    value={groupToEdit.code}
+                    onChange={(e) => setGroupToEdit({ ...groupToEdit, code: e.target.value.toUpperCase() })}
+                    className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1] font-mono-numeric uppercase font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-semibold text-on-surface">Semestre / Grado *</label>
+                  <select
+                    value={groupToEdit.semester}
+                    onChange={(e) => setGroupToEdit({ ...groupToEdit, semester: e.target.value })}
+                    className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1] font-semibold text-primary cursor-pointer"
+                  >
+                    <option value="1er Semestre">1er Semestre / 1° Grado</option>
+                    <option value="2do Semestre">2do Semestre / 2° Grado (2° C)</option>
+                    <option value="3er Semestre">3er Semestre / 3° Grado</option>
+                    <option value="4to Semestre">4to Semestre / 4° Grado</option>
+                    <option value="5to Semestre">5to Semestre / 5° Grado</option>
+                    <option value="6to Semestre">6to Semestre / 6° Grado</option>
+                    <option value="1° Año Escolar">1° Año Escolar</option>
+                    <option value="2° Año Escolar">2° Año Escolar</option>
+                    <option value="3° Año Escolar">3° Año Escolar</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-on-surface">Sección / Grupo</label>
+                  <select
+                    value={groupToEdit.section}
+                    onChange={(e) => setGroupToEdit({ ...groupToEdit, section: e.target.value as any })}
+                    className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1] font-semibold cursor-pointer"
+                  >
+                    <option value="Grupo A">Grupo A</option>
+                    <option value="Grupo B">Grupo B</option>
+                    <option value="Grupo C">Grupo C</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-on-surface">Turno</label>
+                  <select
+                    value={groupToEdit.shift}
+                    onChange={(e) => setGroupToEdit({ ...groupToEdit, shift: e.target.value as any })}
+                    className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1] cursor-pointer"
+                  >
+                    <option value="Matutino">Matutino</option>
+                    <option value="Vespertino">Vespertino</option>
+                    <option value="Mixto">Mixto</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-on-surface">Aula / Laboratorio</label>
+                  <input
+                    value={groupToEdit.classroom}
+                    onChange={(e) => setGroupToEdit({ ...groupToEdit, classroom: e.target.value })}
+                    className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1]"
+                    placeholder="Ej. Aula 204"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-semibold text-on-surface">Cupo Máximo</label>
+                  <input
+                    type="number"
+                    min="5"
+                    max="100"
+                    value={groupToEdit.capacity}
+                    onChange={(e) => setGroupToEdit({ ...groupToEdit, capacity: Number(e.target.value) })}
+                    className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1] font-mono-numeric"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#F1F5F9] mt-2">
+                <button
+                  type="button"
+                  onClick={() => setGroupToEdit(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-primary hover:bg-primary-container text-white font-bold rounded-lg shadow-sm cursor-pointer flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-sm">save</span>
+                  <span>Guardar Cambios</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

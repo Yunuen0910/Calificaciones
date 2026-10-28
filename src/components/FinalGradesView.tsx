@@ -13,6 +13,8 @@ interface FinalGradesViewProps {
   onSelectGroup: (groupId: string) => void;
   assignments: AssignmentGrade[];
   scores: Record<string, Record<string, number>>;
+  setScores?: React.Dispatch<React.SetStateAction<Record<string, Record<string, number>>>>;
+  setAssignments?: React.Dispatch<React.SetStateAction<AssignmentGrade[]>>;
   onNavigateToTab: (tab: NavTab) => void;
   institutionInfo?: InstitutionInfo;
 }
@@ -23,6 +25,8 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
   onSelectGroup,
   assignments,
   scores,
+  setScores,
+  setAssignments,
   onNavigateToTab,
   institutionInfo,
 }) => {
@@ -31,6 +35,9 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'passing' | 'risk' | 'failing'>('all');
   const [selectedStudentForBoleta, setSelectedStudentForBoleta] = useState<Student | null>(null);
+  const [editingCell, setEditingCell] = useState<{ studentId: string; category: 'homework' | 'exams' | 'attendance' | 'participation' | 'projects' | 'selfEval' } | null>(null);
+  const [editValue, setEditValue] = useState<string>('');
+  const [toastFeedback, setToastFeedback] = useState<string | null>(null);
   const [teacherNotes, setTeacherNotes] = useState<Record<string, string>>({
     'std-1': 'Excelente desempeño académico y participación activa en proyectos de investigación.',
     'std-2': 'Buen aprovechamiento general. Se recomienda reforzar preparación para exámenes departamentales.',
@@ -77,15 +84,84 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
     return currentGroup.id === 'grp-fis-302';
   });
 
+  // Save direct score for a criterion (Exámenes, Proyectos, Autoevaluación, etc.)
+  const handleSaveCriterionScore = (
+    studentId: string,
+    category: 'homework' | 'exams' | 'attendance' | 'participation' | 'projects' | 'selfEval',
+    valStr: string
+  ) => {
+    const parsed = parseFloat(valStr);
+    if (isNaN(parsed) || parsed < 0 || parsed > 10) {
+      setToastFeedback('Ingresa una calificación válida entre 0 y 10.');
+      setTimeout(() => setToastFeedback(null), 3000);
+      setEditingCell(null);
+      return;
+    }
+    const cleanScore = Math.round(parsed * 10) / 10;
+    const directKey = `cat_${currentGroup.id}_${category}`;
+
+    const categoryNames: Record<string, string> = {
+      homework: 'Tareas y Trabajos',
+      exams: 'Exámenes y Pruebas',
+      attendance: 'Asistencia y Puntualidad',
+      participation: 'Participación en Clase',
+      projects: 'Proyectos y Modulares',
+      selfEval: 'Autoevaluación',
+    };
+
+    let targetAssignmentId = directKey;
+    if (setAssignments) {
+      setAssignments((prev) => {
+        const existing = prev.find(
+          (a) => (a.groupId === currentGroup.id || !a.groupId) && a.category === category
+        );
+        if (existing) {
+          targetAssignmentId = existing.id;
+          return prev;
+        }
+        const newAsg: AssignmentGrade = {
+          id: directKey,
+          groupId: currentGroup.id,
+          name: categoryNames[category] || category,
+          category,
+          periodIndex: 1,
+          maxScore: 10,
+        };
+        return [...prev, newAsg];
+      });
+    }
+
+    if (setScores) {
+      setScores((prev) => {
+        const studentMap = { ...(prev[studentId] || {}) };
+        studentMap[directKey] = cleanScore;
+        studentMap[targetAssignmentId] = cleanScore;
+        return {
+          ...prev,
+          [studentId]: studentMap,
+        };
+      });
+    }
+
+    setToastFeedback(`Calificación de ${categoryNames[category]} guardada: ${cleanScore.toFixed(1)}`);
+    setTimeout(() => setToastFeedback(null), 3000);
+    setEditingCell(null);
+  };
+
   // Calculate student average for a specific period
   const calculatePeriodAverage = (studentId: string, periodIdx: number) => {
     const studentScores = scores[studentId] || {};
     const periodAssignments = groupAssignments.filter(a => a.periodIndex === periodIdx);
-    if (periodAssignments.length === 0) return 10.0;
 
     const getCatPeriodAvg = (category: 'homework' | 'exams' | 'attendance' | 'participation' | 'projects' | 'selfEval') => {
+      const directKey = `cat_${currentGroup.id}_${category}`;
       const catAsgs = periodAssignments.filter(a => a.category === category);
-      if (catAsgs.length === 0) return 10.0;
+      if (catAsgs.length === 0) {
+        if (studentScores[directKey] !== undefined) {
+          return studentScores[directKey];
+        }
+        return 10.0;
+      }
       let sum = 0;
       let count = 0;
       for (const a of catAsgs) {
@@ -93,6 +169,9 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
           sum += studentScores[a.id];
           count++;
         }
+      }
+      if (count === 0 && studentScores[directKey] !== undefined) {
+        return studentScores[directKey];
       }
       return count > 0 ? sum / count : 10.0;
     };
@@ -119,8 +198,16 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
   // Calculate cumulative criterion average across entire course
   const calculateCriterionCumulative = (studentId: string, category: 'homework' | 'exams' | 'attendance' | 'participation' | 'projects' | 'selfEval') => {
     const studentScores = scores[studentId] || {};
+    const directKey = `cat_${currentGroup.id}_${category}`;
     const catAssignments = groupAssignments.filter(a => a.category === category);
-    if (catAssignments.length === 0) return 10.0;
+
+    if (catAssignments.length === 0) {
+      if (studentScores[directKey] !== undefined) {
+        return studentScores[directKey];
+      }
+      return 10.0;
+    }
+
     let sum = 0;
     let count = 0;
     for (const a of catAssignments) {
@@ -128,6 +215,10 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
         sum += studentScores[a.id];
         count++;
       }
+    }
+
+    if (count === 0 && studentScores[directKey] !== undefined) {
+      return studentScores[directKey];
     }
     return count > 0 ? Math.round((sum / count) * 10) / 10 : 10.0;
   };
@@ -244,6 +335,13 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
 
   return (
     <div className="flex flex-col w-full pb-20 px-space-lg pt-space-lg">
+      {toastFeedback && (
+        <div className="fixed top-20 right-8 z-50 bg-[#1E3A8A] text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-semibold animate-fade-in border border-blue-400">
+          <span className="material-symbols-outlined text-base text-emerald-400">check_circle</span>
+          <span>{toastFeedback}</span>
+        </div>
+      )}
+
       {/* Top Header & Navigation */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-space-md pb-space-lg border-b border-[#E2E8F0]">
         <div className="flex flex-col gap-1">
@@ -449,6 +547,32 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
         </div>
       </div>
 
+      {/* Banner de Edición Directa de Criterios */}
+      <div className="p-3.5 bg-gradient-to-r from-amber-50 to-indigo-50 rounded-xl border border-amber-200/90 mb-space-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-800 flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-base">edit_calendar</span>
+          </div>
+          <div>
+            <span className="font-bold text-slate-900">Edición Directa de Criterios Habilitada:</span>
+            <p className="text-slate-600 text-[11px] mt-0.5">
+              Haz <strong>clic en cualquier calificación de criterio</strong> (Exámenes, Proyectos, Autoevaluación, Asistencia, etc.) para editarla directamente sin salir de la sábana. Presiona <kbd className="px-1 py-0.5 bg-white border border-slate-300 rounded font-mono text-[10px]">Enter</kbd> para guardar.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-900 border border-indigo-200">
+            Proyectos ({weights.projects || 0}%)
+          </span>
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
+            Exámenes ({weights.exams}%)
+          </span>
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">
+            Auto ({weights.selfEval}%)
+          </span>
+        </div>
+      </div>
+
       {/* Sábana de Calificaciones Table */}
       <div className="bg-surface-container-lowest rounded-xl shadow-xs border border-[#E2E8F0] overflow-hidden flex flex-col">
         {/* Table Subtitle Banner */}
@@ -624,25 +748,61 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
                         );
                       })}
 
-                      {/* Criteria Scores */}
-                      <td className="py-2.5 px-3 text-center border-r border-[#E2E8F0] font-mono-numeric text-xs text-on-surface">
-                        {calculateCriterionCumulative(student.id, 'homework').toFixed(1)}
-                      </td>
-                      <td className="py-2.5 px-3 text-center border-r border-[#E2E8F0] font-mono-numeric text-xs text-on-surface">
-                        {calculateCriterionCumulative(student.id, 'exams').toFixed(1)}
-                      </td>
-                      <td className="py-2.5 px-3 text-center border-r border-[#E2E8F0] font-mono-numeric text-xs text-on-surface">
-                        {calculateCriterionCumulative(student.id, 'attendance').toFixed(1)}
-                      </td>
-                      <td className="py-2.5 px-3 text-center border-r border-[#E2E8F0] font-mono-numeric text-xs text-on-surface">
-                        {calculateCriterionCumulative(student.id, 'participation').toFixed(1)}
-                      </td>
-                      <td className="py-2.5 px-3 text-center border-r border-[#E2E8F0] font-mono-numeric text-xs font-bold text-indigo-900 bg-indigo-50/20">
-                        {calculateCriterionCumulative(student.id, 'projects').toFixed(1)}
-                      </td>
-                      <td className="py-2.5 px-3 text-center border-r border-[#E2E8F0] font-mono-numeric text-xs text-on-surface">
-                        {calculateCriterionCumulative(student.id, 'selfEval').toFixed(1)}
-                      </td>
+                      {/* Criteria Scores (Click to edit directly) */}
+                      {(
+                        [
+                          { key: 'homework', label: 'Tareas', isProj: false },
+                          { key: 'exams', label: 'Examen', isProj: false },
+                          { key: 'attendance', label: 'Asistencia', isProj: false },
+                          { key: 'participation', label: 'Participación', isProj: false },
+                          { key: 'projects', label: 'Proyectos', isProj: true },
+                          { key: 'selfEval', label: 'Autoevaluación', isProj: false },
+                        ] as const
+                      ).map(({ key: cat, label, isProj }) => {
+                        const isEditing = editingCell?.studentId === student.id && editingCell?.category === cat;
+                        const scoreVal = calculateCriterionCumulative(student.id, cat);
+
+                        return (
+                          <td
+                            key={cat}
+                            onClick={() => {
+                              if (!isEditing) {
+                                setEditingCell({ studentId: student.id, category: cat });
+                                setEditValue(String(scoreVal));
+                              }
+                            }}
+                            className={`py-2 px-2 text-center border-r border-[#E2E8F0] font-mono-numeric text-xs transition-colors cursor-pointer group hover:bg-primary/10 relative ${
+                              isProj ? 'bg-indigo-50/30 font-bold text-indigo-950' : 'text-on-surface'
+                            }`}
+                            title={`Clic para capturar o editar ${label} (Enter para guardar)`}
+                          >
+                            {isEditing ? (
+                              <input
+                                autoFocus
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="10"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => handleSaveCriterionScore(student.id, cat, editValue)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveCriterionScore(student.id, cat, editValue);
+                                  if (e.key === 'Escape') setEditingCell(null);
+                                }}
+                                className="w-16 h-7 text-center font-mono-numeric text-xs font-bold text-primary bg-white border-2 border-secondary rounded shadow-sm focus:outline-none"
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center gap-1">
+                                <span>{scoreVal.toFixed(1)}</span>
+                                <span className="material-symbols-outlined text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  edit
+                                </span>
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
 
                       {/* Promedio Final */}
                       <td className="py-2.5 px-3 text-center font-mono-numeric text-sm font-extrabold border-r border-[#E2E8F0] bg-surface-container-low/40">

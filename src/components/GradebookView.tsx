@@ -267,27 +267,37 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
     }
   };
 
-  // Generate suggested clean assignments if empty
+  // Generate suggested clean assignments if empty covering all 6 evaluation criteria
   const handleGenerateStarterTemplate = () => {
     const newAsgs: AssignmentGrade[] = [];
     const newScoresPatch: Record<string, Record<string, number>> = {};
+    const timestamp = Date.now();
     
     for (let p = 1; p <= numPeriods; p++) {
-      const t1Id = `asg-${currentGroup.id}-p${p}-t1-${Date.now()}`;
-      const exId = `asg-${currentGroup.id}-p${p}-ex-${Date.now()}`;
-      const partId = `asg-${currentGroup.id}-p${p}-part-${Date.now()}`;
+      const hwId = `asg-${currentGroup.id}-p${p}-hw-${timestamp}`;
+      const exId = `asg-${currentGroup.id}-p${p}-ex-${timestamp}`;
+      const attId = `asg-${currentGroup.id}-p${p}-att-${timestamp}`;
+      const partId = `asg-${currentGroup.id}-p${p}-part-${timestamp}`;
+      const projId = `asg-${currentGroup.id}-p${p}-proj-${timestamp}`;
+      const selfId = `asg-${currentGroup.id}-p${p}-self-${timestamp}`;
       
       newAsgs.push(
-        { id: t1Id, groupId: currentGroup.id, name: `Tarea 1 (P${p})`, category: 'homework', periodIndex: p, maxScore: 10 },
-        { id: exId, groupId: currentGroup.id, name: `Examen (P${p})`, category: 'exams', periodIndex: p, maxScore: 10 },
+        { id: hwId, groupId: currentGroup.id, name: `Tareas y Trabajos (P${p})`, category: 'homework', periodIndex: p, maxScore: 10 },
+        { id: exId, groupId: currentGroup.id, name: `Examen Parcial (P${p})`, category: 'exams', periodIndex: p, maxScore: 10 },
+        { id: attId, groupId: currentGroup.id, name: `Asistencia (P${p})`, category: 'attendance', periodIndex: p, maxScore: 10 },
         { id: partId, groupId: currentGroup.id, name: `Participación (P${p})`, category: 'participation', periodIndex: p, maxScore: 10 },
+        { id: projId, groupId: currentGroup.id, name: `Proyecto Modular (P${p})`, category: 'projects', periodIndex: p, maxScore: 10 },
+        { id: selfId, groupId: currentGroup.id, name: `Autoevaluación (P${p})`, category: 'selfEval', periodIndex: p, maxScore: 10 },
       );
 
       students.forEach(s => {
         if (!newScoresPatch[s.id]) newScoresPatch[s.id] = {};
-        newScoresPatch[s.id][t1Id] = 9.0;
+        newScoresPatch[s.id][hwId] = 9.0;
         newScoresPatch[s.id][exId] = 8.5;
+        newScoresPatch[s.id][attId] = 10.0;
         newScoresPatch[s.id][partId] = 9.5;
+        newScoresPatch[s.id][projId] = 9.0;
+        newScoresPatch[s.id][selfId] = 10.0;
       });
     }
 
@@ -397,14 +407,24 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
           </button>
 
           {groupAssignments.length > 0 ? (
-            <button
-              onClick={handleClearGroupAssignments}
-              className="px-3 py-2 rounded-lg bg-surface-container-low text-rose-700 hover:bg-rose-50 border border-rose-200 text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
-              title="Borrar todas las actividades de esta materia para comenzar en blanco"
-            >
-              <span className="material-symbols-outlined text-base text-rose-600">delete_sweep</span>
-              <span>Limpiar Actividades</span>
-            </button>
+            <>
+              <button
+                onClick={handleGenerateStarterTemplate}
+                className="px-3 py-2 rounded-lg bg-indigo-50 text-indigo-900 hover:bg-indigo-100 border border-indigo-300 text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
+                title="Añadir columnas de los 6 criterios institucionales (Proyectos, Exámenes, Asistencia, etc.)"
+              >
+                <span className="material-symbols-outlined text-base text-indigo-700">playlist_add</span>
+                <span>+ 6 Criterios</span>
+              </button>
+              <button
+                onClick={handleClearGroupAssignments}
+                className="px-3 py-2 rounded-lg bg-surface-container-low text-rose-700 hover:bg-rose-50 border border-rose-200 text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
+                title="Borrar todas las actividades de esta materia para comenzar en blanco"
+              >
+                <span className="material-symbols-outlined text-base text-rose-600">delete_sweep</span>
+                <span>Limpiar Actividades</span>
+              </button>
+            </>
           ) : (
             <button
               onClick={handleGenerateStarterTemplate}
