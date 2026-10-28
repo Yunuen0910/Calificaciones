@@ -31,6 +31,8 @@ interface AdminPanelProps {
   onImportBackup: (jsonData: string) => boolean;
   onResetDatabase: () => void;
   onUpdateGroupTeacher?: (groupId: string, teacherId: string | undefined) => void;
+  onDeleteGroup?: (groupId: string) => void;
+  onDeleteDemoTeachers?: () => void;
 }
 
 export type AdminTab = 'cycles' | 'teachers' | 'groups' | 'institution' | 'backup';
@@ -59,6 +61,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onImportBackup,
   onResetDatabase,
   onUpdateGroupTeacher,
+  onDeleteGroup,
+  onDeleteDemoTeachers,
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('cycles');
 
@@ -705,9 +709,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   Supervisión general de grupos, profesores asignados y alumnos matriculados
                 </p>
               </div>
-              <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-xs font-bold text-slate-700">
-                Total: {groups.length} grupos
-              </span>
+              <div className="flex items-center gap-2">
+                {groups.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          '¿Estás seguro de eliminar todos los grupos y materias de prueba? Esta acción vaciará la base de datos de grupos y se sincronizará de inmediato en la nube.'
+                        )
+                      ) {
+                        onCleanSlate();
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-sm">delete_sweep</span>
+                    <span>Borrar Grupos Demo</span>
+                  </button>
+                )}
+                <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-xs font-bold text-slate-700">
+                  Total: {groups.length} grupos
+                </span>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -720,6 +744,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     <th className="px-5 py-3">Alumnos</th>
                     <th className="px-5 py-3">Aula / Turno</th>
                     <th className="px-5 py-3">Escala</th>
+                    <th className="px-5 py-3 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -771,6 +796,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         </td>
                         <td className="px-5 py-3.5">
                           <span className="capitalize">{group.criteria?.evaluationStructure}</span>
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          {onDeleteGroup && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (
+                                  window.confirm(
+                                    `¿Estás seguro de eliminar permanentemente la materia "${group.name}" (${group.code})? Se eliminará de la base de datos en la nube.`
+                                  )
+                                ) {
+                                  onDeleteGroup(group.id);
+                                }
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              title="Eliminar esta materia/grupo"
+                            >
+                              <span className="material-symbols-outlined text-base">delete</span>
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );
@@ -900,17 +945,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   Iniciar Sistema en Blanco (Modo Producción)
                 </h4>
                 <p className="text-xs text-blue-700 mt-1 max-w-xl">
-                  Elimina todos los grupos, materias, alumnos y calificaciones de ejemplo. Deja la plataforma completamente limpia y en blanco lista para iniciar las operaciones escolares de la institución. Conserva tus cuentas de usuario y ciclos escolares.
+                  Elimina de forma permanente en la nube y en tu equipo todos los grupos, materias, alumnos y notas demo (Física Cuántica, Álgebra, Química). Tu cuenta de Directora permanece intacta.
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => {
                   if (
                     window.confirm(
-                      '¿Estás seguro de poner el sistema en Modo Producción en blanco? Se eliminarán todas las materias y alumnos de prueba para que comiences desde cero.'
+                      '¿Estás seguro de poner el sistema en Modo Producción en blanco? Se borrarán permanentemente de la nube y del sistema todas las materias y alumnos de demostración.'
                     )
                   ) {
                     onCleanSlate();
+                    setImportStatusMessage({
+                      type: 'success',
+                      text: '¡Sistema puesto en Modo Producción en blanco! Se eliminaron todos los demos de la base de datos en la nube.',
+                    });
                   }
                 }}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm cursor-pointer transition-all shrink-0"
@@ -918,6 +968,40 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 Iniciar en Blanco
               </button>
             </div>
+
+            {/* Delete Demo Teachers Card */}
+            {onDeleteDemoTeachers && (
+              <div className="bg-rose-50/70 border border-rose-200 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h4 className="text-sm font-bold text-rose-900 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-base text-rose-600">person_remove</span>
+                    Eliminar Profesores Demo (Carlos Mendoza y Marcela)
+                  </h4>
+                  <p className="text-xs text-rose-700 mt-1 max-w-xl">
+                    Elimina las cuentas de prueba de profesores ficticios de la nube para conservar únicamente las cuentas de docentes reales creadas por ti.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        '¿Estás seguro de eliminar las cuentas de prueba de Carlos Mendoza y Marcela Hernández de la nube?'
+                      )
+                    ) {
+                      onDeleteDemoTeachers();
+                      setImportStatusMessage({
+                        type: 'success',
+                        text: 'Profesores de demostración eliminados de la nube exitosamente.',
+                      });
+                    }
+                  }}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-xl shadow-sm cursor-pointer transition-all shrink-0"
+                >
+                  Eliminar Docentes Demo
+                </button>
+              </div>
+            )}
 
             {/* Reset to Demo Data Card */}
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -931,6 +1015,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => {
                   if (
                     window.confirm(
@@ -938,6 +1023,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     )
                   ) {
                     onResetDemoData();
+                    setImportStatusMessage({
+                      type: 'success',
+                      text: 'Datos demo restablecidos exitosamente.',
+                    });
                   }
                 }}
                 className="px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl shadow-sm cursor-pointer transition-all shrink-0"

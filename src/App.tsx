@@ -41,6 +41,10 @@ import {
   deleteUserFromCloud,
   syncCycleToCloud,
   syncGroupToCloud,
+  deleteGroupFromCloud,
+  clearAllCloudGroupsAndScores,
+  clearDemoStudentsFromCloudGroups,
+  deleteDemoTeachersFromCloud,
   syncAssignmentToCloud,
   syncScoresToCloud,
   seedInitialCloudDataIfEmpty,
@@ -52,7 +56,16 @@ export default function App() {
     const saved = localStorage.getItem('aulagrade_users_data');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const merged = [...parsed];
+          INITIAL_USERS.forEach((iu) => {
+            if (!merged.some((u) => u.email.toLowerCase() === iu.email.toLowerCase())) {
+              merged.push(iu);
+            }
+          });
+          return merged;
+        }
       } catch (e) {
         console.error('Failed to parse users', e);
       }
@@ -96,6 +109,17 @@ export default function App() {
 
   // 4. Groups state
   const [groups, setGroups] = useState<Group[]>(() => {
+    if (localStorage.getItem('aulagrade_clean_slate_active') === 'true') {
+      const saved = localStorage.getItem('aulagrade_groups_data');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error('Failed to parse saved groups', e);
+        }
+      }
+      return [];
+    }
     const saved = localStorage.getItem('aulagrade_groups_data');
     if (saved) {
       try {
@@ -248,7 +272,18 @@ export default function App() {
 
     const unsubUsers = subscribeToUsers((cloudUsers) => {
       if (cloudUsers.length > 0) {
-        setUsers(cloudUsers);
+        const merged = [...cloudUsers];
+        const yunuenAdmin = INITIAL_USERS.find(
+          (u) => u.email.toLowerCase() === 'yunuen.0910@gmail.com'
+        );
+        if (
+          yunuenAdmin &&
+          !merged.some((u) => u.email.toLowerCase() === 'yunuen.0910@gmail.com')
+        ) {
+          merged.push(yunuenAdmin);
+          syncUserToCloud(yunuenAdmin);
+        }
+        setUsers(merged);
       }
     });
 
@@ -553,43 +588,92 @@ export default function App() {
     });
   };
 
+  const handleDeleteGroup = (groupId: string) => {
+    setGroups((prev) => prev.filter((g) => g.id !== groupId));
+    setAssignments((prev) => prev.filter((a) => a.groupId !== groupId));
+    setScores((prev) => {
+      const next = { ...prev };
+      delete next[groupId];
+      return next;
+    });
+    if (selectedGroupId === groupId) {
+      const remaining = groups.filter((g) => g.id !== groupId);
+      setSelectedGroupId(remaining[0]?.id || '');
+    }
+    deleteGroupFromCloud(groupId);
+    // Also remove from any teacher assignedGroupIds
+    setUsers((prev) =>
+      prev.map((u) => {
+        if (u.assignedGroupIds?.includes(groupId)) {
+          const updated = {
+            ...u,
+            assignedGroupIds: u.assignedGroupIds.filter((id) => id !== groupId),
+          };
+          syncUserToCloud(updated);
+          return updated;
+        }
+        return u;
+      })
+    );
+  };
+
   const handleClearDemoStudents = () => {
     // Keep groups/subjects intact, but empty student lists and clear student scores
-    setGroups((prev) =>
-      prev.map((g) => ({
-        ...g,
-        students: [],
-      }))
-    );
+    const emptied = groups.map((g) => ({
+      ...g,
+      students: [],
+    }));
+    setGroups(emptied);
     setScores({});
-    localStorage.removeItem('aulagrade_scores_data');
+    localStorage.setItem('aulagrade_groups_data', JSON.stringify(emptied));
+    localStorage.setItem('aulagrade_scores_data', JSON.stringify({}));
+    // Synchronize to Firestore Cloud so students never reappear
+    clearDemoStudentsFromCloudGroups(emptied);
   };
 
   const handleCleanSlate = () => {
-    // Production clean slate: wipe out all demo groups, assignments, and scores
+    // Production clean slate: wipe out all demo groups, assignments, and scores from local and cloud
     setGroups([]);
     setAssignments([]);
     setScores({});
     setSelectedGroupId('');
-    localStorage.removeItem('aulagrade_groups_data');
-    localStorage.removeItem('aulagrade_assignments_data');
-    localStorage.removeItem('aulagrade_scores_data');
+    localStorage.setItem('aulagrade_clean_slate_active', 'true');
+    localStorage.setItem('aulagrade_groups_data', JSON.stringify([]));
+    localStorage.setItem('aulagrade_assignments_data', JSON.stringify([]));
+    localStorage.setItem('aulagrade_scores_data', JSON.stringify({}));
 
     // Remove group assignments from teachers
-    setUsers((prev) =>
-      prev.map((u) => ({
-        ...u,
-        assignedGroupIds: [],
-      }))
-    );
+    const updatedUsers = users.map((u) => ({
+      ...u,
+      assignedGroupIds: [],
+    }));
+    setUsers(updatedUsers);
+    updatedUsers.forEach((u) => syncUserToCloud(u));
+
+    // Clear all cloud groups, scores and assignments in Firestore
+    clearAllCloudGroupsAndScores();
+  };
+
+  const handleDeleteDemoTeachers = () => {
+    const demoEmails = ['c.mendoza@aulagrade.edu', 'm.hernandez@aulagrade.edu', 'admin@escuela.edu'];
+    const remaining = users.filter((u) => !demoEmails.includes(u.email.toLowerCase()));
+    setUsers(remaining);
+    localStorage.setItem('aulagrade_users_data', JSON.stringify(remaining));
+    deleteDemoTeachersFromCloud();
   };
 
   const handleResetDemoData = () => {
     // Reload original demo subjects, students and scores
+    localStorage.removeItem('aulagrade_clean_slate_active');
     setGroups(INITIAL_GROUPS);
     setAssignments(INITIAL_ASSIGNMENTS);
     setScores(INITIAL_STUDENT_SCORES);
     setSelectedGroupId('grp-fis-302');
+    INITIAL_GROUPS.forEach((g) => syncGroupToCloud(g));
+    INITIAL_ASSIGNMENTS.forEach((a) => syncAssignmentToCloud(a));
+    Object.entries(INITIAL_STUDENT_SCORES).forEach(([groupId, studentMap]) => {
+      syncScoresToCloud(groupId, studentMap);
+    });
   };
 
   // Backup & Restore
@@ -778,6 +862,8 @@ export default function App() {
               onDeleteSchool={handleDeleteSchool}
               onClearDemoStudents={handleClearDemoStudents}
               onCleanSlate={handleCleanSlate}
+              onDeleteDemoTeachers={handleDeleteDemoTeachers}
+              onDeleteGroup={handleDeleteGroup}
               onResetDemoData={handleResetDemoData}
               onAddUser={handleAddUser}
               onUpdateUser={handleUpdateUser}
@@ -811,6 +897,8 @@ export default function App() {
               groups={activeViewGroups}
               activeCycle={activeCycle}
               scores={scores}
+              isAdmin={currentUser.role === 'admin'}
+              onDeleteGroup={handleDeleteGroup}
               onOpenCreateGroup={() => setActiveTab('alta-grupo')}
               onSelectGroupForGrades={(g) => {
                 setSelectedGroupId(g.id);

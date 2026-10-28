@@ -49,7 +49,7 @@ export const SuccessCreatedModal: React.FC<SuccessCreatedModalProps> = ({
         <div className="bg-surface-container-low p-3.5 rounded-xl border border-[#E2E8F0] text-left flex flex-col gap-2 text-xs">
           <div className="flex items-center gap-2 text-on-surface">
             <span className="material-symbols-outlined text-emerald-600 text-base">check</span>
-            <span><strong className="font-semibold">Cuaderno de Notas</strong> configurado con ponderación {group.criteria.weights.homework}% tareas, {group.criteria.weights.exams}% exámenes.</span>
+            <span><strong className="font-semibold">Cuaderno de Notas</strong> configurado con 6 criterios ({group.criteria.weights.homework}% tareas, {group.criteria.weights.exams}% exámenes, {group.criteria.weights.projects || 0}% proyectos, etc.).</span>
           </div>
           <div className="flex items-center gap-2 text-on-surface">
             <span className="material-symbols-outlined text-emerald-600 text-base">check</span>

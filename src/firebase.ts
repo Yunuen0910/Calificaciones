@@ -269,6 +269,14 @@ export async function deleteGroupFromCloud(groupId: string) {
   }
 }
 
+export async function deleteAssignmentFromCloud(assignmentId: string) {
+  try {
+    await deleteDoc(doc(db, 'assignments', assignmentId));
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, `assignments/${assignmentId}`);
+  }
+}
+
 export async function syncAssignmentToCloud(assignment: AssignmentGrade) {
   try {
     await setDoc(doc(db, 'assignments', assignment.id), assignment);
@@ -289,6 +297,60 @@ export async function syncScoresToCloud(
     });
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, `scores/${groupId}`);
+  }
+}
+
+export async function clearAllCloudGroupsAndScores(): Promise<void> {
+  try {
+    const groupSnap = await getDocs(collection(db, 'groups'));
+    const scoreSnap = await getDocs(collection(db, 'scores'));
+    const asgSnap = await getDocs(collection(db, 'assignments'));
+    const batch = writeBatch(db);
+
+    groupSnap.forEach((docSnap) => {
+      batch.delete(docSnap.ref);
+    });
+    scoreSnap.forEach((docSnap) => {
+      batch.delete(docSnap.ref);
+    });
+    asgSnap.forEach((docSnap) => {
+      batch.delete(docSnap.ref);
+    });
+
+    await batch.commit();
+    console.log('Cleared all cloud groups, scores, and assignments successfully');
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, 'clear-all-groups-cloud');
+  }
+}
+
+export async function clearDemoStudentsFromCloudGroups(groupsToClean: Group[]): Promise<void> {
+  try {
+    const batch = writeBatch(db);
+    groupsToClean.forEach((g) => {
+      batch.set(doc(db, 'groups', g.id), { ...g, students: [] });
+    });
+    const scoreSnap = await getDocs(collection(db, 'scores'));
+    scoreSnap.forEach((docSnap) => {
+      batch.delete(docSnap.ref);
+    });
+    await batch.commit();
+    console.log('Cleared demo students from cloud groups successfully');
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, 'clear-demo-students-cloud');
+  }
+}
+
+export async function deleteDemoTeachersFromCloud(): Promise<void> {
+  try {
+    const demoTeacherIds = ['usr-prof-1', 'usr-prof-2'];
+    const batch = writeBatch(db);
+    demoTeacherIds.forEach((id) => {
+      batch.delete(doc(db, 'users', id));
+    });
+    await batch.commit();
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, 'delete-demo-teachers');
   }
 }
 

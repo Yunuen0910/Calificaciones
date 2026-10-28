@@ -46,7 +46,7 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
   const [assignmentToDelete, setAssignmentToDelete] = useState<AssignmentGrade | null>(null);
   const [assignmentToEdit, setAssignmentToEdit] = useState<AssignmentGrade | null>(null);
   const [newAsgName, setNewAsgName] = useState('');
-  const [newAsgCategory, setNewAsgCategory] = useState<'homework' | 'exams' | 'attendance' | 'participation' | 'selfEval'>('homework');
+  const [newAsgCategory, setNewAsgCategory] = useState<'homework' | 'exams' | 'attendance' | 'participation' | 'projects' | 'selfEval'>('homework');
   const [selectedPeriodFilter, setSelectedPeriodFilter] = useState<number | 'all'>('all');
   const [newAsgPeriod, setNewAsgPeriod] = useState<number>(1);
 
@@ -97,7 +97,7 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
     const periodAssignments = groupAssignments.filter((a) => a.periodIndex === periodIdx);
     if (periodAssignments.length === 0) return 10.0;
 
-    const getCatPeriodAvg = (category: 'homework' | 'exams' | 'attendance' | 'participation' | 'selfEval') => {
+    const getCatPeriodAvg = (category: 'homework' | 'exams' | 'attendance' | 'participation' | 'projects' | 'selfEval') => {
       const catAsgs = periodAssignments.filter((a) => a.category === category);
       if (catAsgs.length === 0) return 10.0;
       let sum = 0;
@@ -115,6 +115,7 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
     const exam = getCatPeriodAvg('exams');
     const att = getCatPeriodAvg('attendance');
     const part = getCatPeriodAvg('participation');
+    const proj = getCatPeriodAvg('projects');
     const self = getCatPeriodAvg('selfEval');
 
     const weighted = (
@@ -122,6 +123,7 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
       (exam * weights.exams) +
       (att * weights.attendance) +
       (part * weights.participation) +
+      (proj * (weights.projects || 0)) +
       (self * weights.selfEval)
     ) / 100;
 
@@ -144,7 +146,7 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
   const calculateStudentAverage = (studentId: string) => {
     const studentScores = scores[studentId] || {};
 
-    const getCategoryAvg = (category: 'homework' | 'exams' | 'attendance' | 'participation' | 'selfEval') => {
+    const getCategoryAvg = (category: 'homework' | 'exams' | 'attendance' | 'participation' | 'projects' | 'selfEval') => {
       const catAssignments = groupAssignments.filter((a) => a.category === category);
       if (catAssignments.length === 0) return 10;
       let sum = 0;
@@ -162,6 +164,7 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
     const examAvg = getCategoryAvg('exams');
     const attAvg = getCategoryAvg('attendance');
     const partAvg = getCategoryAvg('participation');
+    const projAvg = getCategoryAvg('projects');
     const selfAvg = getCategoryAvg('selfEval');
 
     const totalWeighted = (
@@ -169,6 +172,7 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
       (examAvg * weights.exams) +
       (attAvg * weights.attendance) +
       (partAvg * weights.participation) +
+      (projAvg * (weights.projects || 0)) +
       (selfAvg * weights.selfEval)
     ) / 100;
 
@@ -640,7 +644,8 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
                               {asg.category === 'homework' ? `Trabajos (${weights.homework}%)` :
                                asg.category === 'exams' ? `Examen (${weights.exams}%)` :
                                asg.category === 'attendance' ? `Asistencia (${weights.attendance}%)` :
-                               asg.category === 'participation' ? `Part. (${weights.participation}%)` : `Auto. (${weights.selfEval}%)`}
+                               asg.category === 'participation' ? `Part. (${weights.participation}%)` :
+                               asg.category === 'projects' ? `Proyectos (${weights.projects || 0}%)` : `Auto. (${weights.selfEval}%)`}
                             </span>
                             {asg.periodIndex && (
                               <span className="text-[9px] text-outline font-medium mt-0.5">
@@ -706,7 +711,8 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
                                   {asg.category === 'homework' ? `Trabajos (${weights.homework}%)` :
                                    asg.category === 'exams' ? `Examen (${weights.exams}%)` :
                                    asg.category === 'attendance' ? `Asistencia (${weights.attendance}%)` :
-                                   asg.category === 'participation' ? `Part. (${weights.participation}%)` : `Auto. (${weights.selfEval}%)`}
+                                   asg.category === 'participation' ? `Part. (${weights.participation}%)` :
+                                   asg.category === 'projects' ? `Proyectos (${weights.projects || 0}%)` : `Auto. (${weights.selfEval}%)`}
                                 </span>
                                 <span className="text-[9px] text-outline font-medium mt-0.5">
                                   {getPeriodName(pIdx)}
@@ -938,12 +944,13 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
                 <select
                   value={newAsgCategory}
                   onChange={(e) => setNewAsgCategory(e.target.value as any)}
-                  className="w-full h-9 px-3 text-xs bg-surface-container-low rounded border border-[#CBD5E1] mt-1 cursor-pointer"
+                  className="w-full h-9 px-3 text-xs bg-surface-container-low rounded border border-[#CBD5E1] mt-1 cursor-pointer font-medium"
                 >
                   <option value="homework">Tareas y Trabajos ({weights.homework}%)</option>
                   <option value="exams">Exámenes y Pruebas ({weights.exams}%)</option>
                   <option value="attendance">Asistencia y Puntualidad ({weights.attendance}%)</option>
                   <option value="participation">Participación y Talleres ({weights.participation}%)</option>
+                  <option value="projects">Proyectos y Modulares ({weights.projects || 0}%)</option>
                   <option value="selfEval">Autoevaluación ({weights.selfEval}%)</option>
                 </select>
               </div>
@@ -1022,6 +1029,7 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
                   <option value="exams">Exámenes y Pruebas ({weights.exams}%)</option>
                   <option value="attendance">Asistencia y Puntualidad ({weights.attendance}%)</option>
                   <option value="participation">Participación y Talleres ({weights.participation}%)</option>
+                  <option value="projects">Proyectos y Modulares ({weights.projects || 0}%)</option>
                   <option value="selfEval">Autoevaluación ({weights.selfEval}%)</option>
                 </select>
               </div>

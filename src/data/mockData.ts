@@ -80,6 +80,15 @@ export const INITIAL_CYCLES: AcademicCycle[] = [
 
 export const INITIAL_USERS: User[] = [
   {
+    id: 'usr-admin-yunuen',
+    name: 'Directora Yunuen',
+    email: 'yunuen.0910@gmail.com',
+    password: 'admin123',
+    role: 'admin',
+    department: 'Dirección General y Control Escolar',
+    createdAt: '2025-01-01T00:00:00Z',
+  },
+  {
     id: 'usr-admin-1',
     name: 'Administrador del Sistema',
     email: 'admin@escuela.edu',
@@ -87,6 +96,16 @@ export const INITIAL_USERS: User[] = [
     role: 'admin',
     department: 'Dirección Académica y TI',
     createdAt: '2025-01-01T00:00:00Z',
+  },
+  {
+    id: 'usr-prof-crisanta',
+    name: 'Profra. Crisanta García Cortés',
+    email: 'crigaco72@gmail.com',
+    password: 'docente123',
+    role: 'teacher',
+    department: 'Docencia Académica',
+    assignedGroupIds: ['grp-fis-302'],
+    createdAt: '2025-01-02T00:00:00Z',
   },
   {
     id: 'usr-prof-1',
@@ -181,7 +200,18 @@ export const INITIAL_GROUPS: Group[] = [
     syncCalendar: true,
     lateTolerance: '10 min',
     schedule: [
-      { day: 'Lunes', shortDay: 'LUN', active: true, startTime: '07:00', endTime: '08:40', sessionType: 'Teoría (100 min)' },
+      { 
+        day: 'Lunes', 
+        shortDay: 'LUN', 
+        active: true, 
+        startTime: '07:00', 
+        endTime: '08:40', 
+        sessionType: 'Teoría (100 min)',
+        hasSplitSchedule: true,
+        startTime2: '14:00',
+        endTime2: '15:40',
+        sessionType2: 'Laboratorio (100 min)'
+      },
       { day: 'Martes', shortDay: 'MAR', active: false, startTime: '07:00', endTime: '08:40', sessionType: 'Sin sesión' },
       { day: 'Miércoles', shortDay: 'MIÉ', active: true, startTime: '07:00', endTime: '08:40', sessionType: 'Laboratorio (100 min)' },
       { day: 'Jueves', shortDay: 'JUE', active: false, startTime: '07:00', endTime: '08:40', sessionType: 'Sin sesión' },
@@ -192,10 +222,11 @@ export const INITIAL_GROUPS: Group[] = [
       evaluationStructure: 'parciales',
       numberOfPeriods: 3,
       weights: {
-        homework: 35,
+        homework: 25,
         exams: 20,
-        attendance: 20,
+        attendance: 15,
         participation: 15,
+        projects: 15,
         selfEval: 10
       },
       scale: 'decimal',
@@ -230,10 +261,11 @@ export const INITIAL_GROUPS: Group[] = [
       evaluationStructure: 'parciales',
       numberOfPeriods: 3,
       weights: {
-        homework: 30,
-        exams: 40,
+        homework: 25,
+        exams: 30,
         attendance: 15,
         participation: 10,
+        projects: 15,
         selfEval: 5
       },
       scale: 'decimal',
@@ -268,10 +300,11 @@ export const INITIAL_GROUPS: Group[] = [
       evaluationStructure: 'trimestres',
       numberOfPeriods: 3,
       weights: {
-        homework: 25,
-        exams: 35,
-        attendance: 20,
+        homework: 20,
+        exams: 30,
+        attendance: 15,
         participation: 10,
+        projects: 15,
         selfEval: 10
       },
       scale: 'decimal',
@@ -289,6 +322,7 @@ export const INITIAL_ASSIGNMENTS: AssignmentGrade[] = [
   { id: 'asg-3', groupId: 'grp-fis-302', name: 'Examen 1er Corte', category: 'exams', periodIndex: 1, maxScore: 10 },
   { id: 'asg-4', groupId: 'grp-fis-302', name: 'Asistencia P1', category: 'attendance', periodIndex: 1, maxScore: 10 },
   { id: 'asg-5', groupId: 'grp-fis-302', name: 'Participación P1', category: 'participation', periodIndex: 1, maxScore: 10 },
+  { id: 'asg-p1-proj', groupId: 'grp-fis-302', name: 'Proyecto Fase 1: Maqueta', category: 'projects', periodIndex: 1, maxScore: 10 },
   { id: 'asg-6', groupId: 'grp-fis-302', name: 'Autoeval. P1', category: 'selfEval', periodIndex: 1, maxScore: 10 },
 
   // Periodo 2 / 2do Trimestre
@@ -297,11 +331,12 @@ export const INITIAL_ASSIGNMENTS: AssignmentGrade[] = [
   { id: 'asg-9', groupId: 'grp-fis-302', name: 'Examen 2do Corte', category: 'exams', periodIndex: 2, maxScore: 10 },
   { id: 'asg-10', groupId: 'grp-fis-302', name: 'Asistencia P2', category: 'attendance', periodIndex: 2, maxScore: 10 },
   { id: 'asg-11', groupId: 'grp-fis-302', name: 'Participación P2', category: 'participation', periodIndex: 2, maxScore: 10 },
+  { id: 'asg-p2-proj', groupId: 'grp-fis-302', name: 'Proyecto Fase 2: Simulador', category: 'projects', periodIndex: 2, maxScore: 10 },
   { id: 'asg-12', groupId: 'grp-fis-302', name: 'Autoeval. P2', category: 'selfEval', periodIndex: 2, maxScore: 10 },
 
   // Periodo 3 / 3er Trimestre
   { id: 'asg-13', groupId: 'grp-fis-302', name: 'T5: Ec. Schrödinger', category: 'homework', periodIndex: 3, maxScore: 10 },
-  { id: 'asg-14', groupId: 'grp-fis-302', name: 'Proyecto Laboratorio', category: 'homework', periodIndex: 3, maxScore: 10 },
+  { id: 'asg-14', groupId: 'grp-fis-302', name: 'Proyecto Final Modular', category: 'projects', periodIndex: 3, maxScore: 10 },
   { id: 'asg-15', groupId: 'grp-fis-302', name: 'Examen Departamental', category: 'exams', periodIndex: 3, maxScore: 10 },
   { id: 'asg-16', groupId: 'grp-fis-302', name: 'Asistencia P3', category: 'attendance', periodIndex: 3, maxScore: 10 },
   { id: 'asg-17', groupId: 'grp-fis-302', name: 'Participación P3', category: 'participation', periodIndex: 3, maxScore: 10 },
@@ -310,33 +345,33 @@ export const INITIAL_ASSIGNMENTS: AssignmentGrade[] = [
 
 export const INITIAL_STUDENT_SCORES: Record<string, Record<string, number>> = {
   'std-1': {
-    'asg-1': 9.5, 'asg-2': 9.8, 'asg-3': 9.2, 'asg-4': 10.0, 'asg-5': 9.5, 'asg-6': 9.0,
-    'asg-7': 9.0, 'asg-8': 9.5, 'asg-9': 9.0, 'asg-10': 9.8, 'asg-11': 9.0, 'asg-12': 9.5,
+    'asg-1': 9.5, 'asg-2': 9.8, 'asg-3': 9.2, 'asg-4': 10.0, 'asg-5': 9.5, 'asg-p1-proj': 9.8, 'asg-6': 9.0,
+    'asg-7': 9.0, 'asg-8': 9.5, 'asg-9': 9.0, 'asg-10': 9.8, 'asg-11': 9.0, 'asg-p2-proj': 9.6, 'asg-12': 9.5,
     'asg-13': 9.8, 'asg-14': 9.5, 'asg-15': 9.2, 'asg-16': 10.0, 'asg-17': 9.5, 'asg-18': 9.0,
   },
   'std-2': {
-    'asg-1': 8.0, 'asg-2': 8.5, 'asg-3': 7.5, 'asg-4': 9.0, 'asg-5': 8.0, 'asg-6': 8.5,
-    'asg-7': 8.2, 'asg-8': 8.0, 'asg-9': 7.0, 'asg-10': 8.5, 'asg-11': 8.0, 'asg-12': 8.0,
+    'asg-1': 8.0, 'asg-2': 8.5, 'asg-3': 7.5, 'asg-4': 9.0, 'asg-5': 8.0, 'asg-p1-proj': 8.5, 'asg-6': 8.5,
+    'asg-7': 8.2, 'asg-8': 8.0, 'asg-9': 7.0, 'asg-10': 8.5, 'asg-11': 8.0, 'asg-p2-proj': 8.2, 'asg-12': 8.0,
     'asg-13': 8.5, 'asg-14': 8.0, 'asg-15': 7.8, 'asg-16': 9.0, 'asg-17': 8.5, 'asg-18': 8.0,
   },
   'std-3': {
-    'asg-1': 8.8, 'asg-2': 9.0, 'asg-3': 8.5, 'asg-4': 9.5, 'asg-5': 9.0, 'asg-6': 9.5,
-    'asg-7': 9.0, 'asg-8': 8.8, 'asg-9': 8.2, 'asg-10': 9.0, 'asg-11': 8.5, 'asg-12': 9.0,
+    'asg-1': 8.8, 'asg-2': 9.0, 'asg-3': 8.5, 'asg-4': 9.5, 'asg-5': 9.0, 'asg-p1-proj': 9.2, 'asg-6': 9.5,
+    'asg-7': 9.0, 'asg-8': 8.8, 'asg-9': 8.2, 'asg-10': 9.0, 'asg-11': 8.5, 'asg-p2-proj': 9.0, 'asg-12': 9.0,
     'asg-13': 8.8, 'asg-14': 9.2, 'asg-15': 8.6, 'asg-16': 9.5, 'asg-17': 9.0, 'asg-18': 9.2,
   },
   'std-4': {
-    'asg-1': 6.5, 'asg-2': 6.0, 'asg-3': 6.2, 'asg-4': 7.5, 'asg-5': 7.0, 'asg-6': 7.0,
-    'asg-7': 6.0, 'asg-8': 6.5, 'asg-9': 5.8, 'asg-10': 7.0, 'asg-11': 6.5, 'asg-12': 6.5,
+    'asg-1': 6.5, 'asg-2': 6.0, 'asg-3': 6.2, 'asg-4': 7.5, 'asg-5': 7.0, 'asg-p1-proj': 6.8, 'asg-6': 7.0,
+    'asg-7': 6.0, 'asg-8': 6.5, 'asg-9': 5.8, 'asg-10': 7.0, 'asg-11': 6.5, 'asg-p2-proj': 6.5, 'asg-12': 6.5,
     'asg-13': 6.8, 'asg-14': 6.5, 'asg-15': 6.0, 'asg-16': 7.5, 'asg-17': 7.0, 'asg-18': 6.5,
   },
   'std-5': {
-    'asg-1': 9.0, 'asg-2': 9.2, 'asg-3': 8.8, 'asg-4': 9.0, 'asg-5': 8.5, 'asg-6': 9.0,
-    'asg-7': 8.8, 'asg-8': 9.0, 'asg-9': 8.5, 'asg-10': 9.0, 'asg-11': 9.0, 'asg-12': 8.5,
+    'asg-1': 9.0, 'asg-2': 9.2, 'asg-3': 8.8, 'asg-4': 9.0, 'asg-5': 8.5, 'asg-p1-proj': 9.0, 'asg-6': 9.0,
+    'asg-7': 8.8, 'asg-8': 9.0, 'asg-9': 8.5, 'asg-10': 9.0, 'asg-11': 9.0, 'asg-p2-proj': 9.2, 'asg-12': 8.5,
     'asg-13': 9.2, 'asg-14': 9.0, 'asg-15': 9.0, 'asg-16': 9.5, 'asg-17': 9.0, 'asg-18': 9.0,
   },
   'std-6': {
-    'asg-1': 5.5, 'asg-2': 5.0, 'asg-3': 5.2, 'asg-4': 6.0, 'asg-5': 6.0, 'asg-6': 6.5,
-    'asg-7': 5.8, 'asg-8': 5.5, 'asg-9': 5.0, 'asg-10': 6.0, 'asg-11': 5.5, 'asg-12': 6.0,
+    'asg-1': 5.5, 'asg-2': 5.0, 'asg-3': 5.2, 'asg-4': 6.0, 'asg-5': 6.0, 'asg-p1-proj': 5.5, 'asg-6': 6.5,
+    'asg-7': 5.8, 'asg-8': 5.5, 'asg-9': 5.0, 'asg-10': 6.0, 'asg-11': 5.5, 'asg-p2-proj': 5.8, 'asg-12': 6.0,
     'asg-13': 6.0, 'asg-14': 5.8, 'asg-15': 5.2, 'asg-16': 6.5, 'asg-17': 6.0, 'asg-18': 6.0,
   }
 };

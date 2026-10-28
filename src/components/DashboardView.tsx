@@ -15,6 +15,8 @@ interface DashboardViewProps {
   onSelectGroupForAttendance: (group: Group) => void;
   onSelectGroupForCriteria: (group: Group) => void;
   onSelectGroupForFinalGrades?: (group: Group) => void;
+  onDeleteGroup?: (groupId: string) => void;
+  isAdmin?: boolean;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -26,6 +28,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onSelectGroupForAttendance,
   onSelectGroupForCriteria,
   onSelectGroupForFinalGrades,
+  onDeleteGroup,
+  isAdmin,
 }) => {
   const [filterShift, setFilterShift] = useState<'Todos' | 'Matutino' | 'Vespertino' | 'Mixto'>('Todos');
   const [searchQuery, setSearchQuery] = useState('');
@@ -250,14 +254,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {filteredGroups.map((group) => {
           const capPercent = Math.min(100, Math.round((group.students.length / (group.capacity || 1)) * 100 * 10) / 10);
           const activeSessions = group.schedule.filter(s => s.active);
+          const hasSplit = activeSessions.some(s => s.hasSplitSchedule);
           const daysText = activeSessions.map(s => {
+            let d = '';
             switch (s.day) {
-              case 'Lunes': return 'Lun';
-              case 'Martes': return 'Mar';
-              case 'Miércoles': return 'Mié';
-              case 'Jueves': return 'Jue';
-              case 'Viernes': return 'Vie';
+              case 'Lunes': d = 'Lun'; break;
+              case 'Martes': d = 'Mar'; break;
+              case 'Miércoles': d = 'Mié'; break;
+              case 'Jueves': d = 'Jue'; break;
+              case 'Viernes': d = 'Vie'; break;
             }
+            return s.hasSplitSchedule ? `${d} (2 blq)` : d;
           }).join(', ');
 
           return (
@@ -361,6 +368,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 >
                   <span className="material-symbols-outlined text-base">tune</span>
                 </button>
+
+                {onDeleteGroup && (
+                  <button
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          `¿Estás seguro de eliminar el grupo "${group.name}" (${group.code})? Se eliminará de la base de datos en la nube.`
+                        )
+                      ) {
+                        onDeleteGroup(group.id);
+                      }
+                    }}
+                    className="p-1.5 rounded-lg text-outline hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                    title="Eliminar este grupo"
+                  >
+                    <span className="material-symbols-outlined text-base">delete</span>
+                  </button>
+                )}
               </div>
             </div>
           );

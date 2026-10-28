@@ -41,25 +41,26 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
 
   // Schedules state
   const [schedules, setSchedules] = useState<SessionSchedule[]>([
-    { day: 'Lunes', shortDay: 'LUN', active: true, startTime: '07:00', endTime: '08:40', sessionType: 'Teoría (100 min)' },
-    { day: 'Martes', shortDay: 'MAR', active: false, startTime: '07:00', endTime: '08:40', sessionType: 'Sin sesión' },
-    { day: 'Miércoles', shortDay: 'MIÉ', active: true, startTime: '07:00', endTime: '08:40', sessionType: 'Laboratorio (100 min)' },
-    { day: 'Jueves', shortDay: 'JUE', active: false, startTime: '07:00', endTime: '08:40', sessionType: 'Sin sesión' },
-    { day: 'Viernes', shortDay: 'VIE', active: true, startTime: '08:50', endTime: '09:40', sessionType: 'Taller / Resolución (50 min)' },
+    { day: 'Lunes', shortDay: 'LUN', active: true, startTime: '07:00', endTime: '08:40', sessionType: 'Teoría (100 min)', hasSplitSchedule: false, startTime2: '14:00', endTime2: '15:40', sessionType2: 'Laboratorio (100 min)' },
+    { day: 'Martes', shortDay: 'MAR', active: false, startTime: '07:00', endTime: '08:40', sessionType: 'Sin sesión', hasSplitSchedule: false, startTime2: '14:00', endTime2: '15:40', sessionType2: 'Laboratorio (100 min)' },
+    { day: 'Miércoles', shortDay: 'MIÉ', active: true, startTime: '07:00', endTime: '08:40', sessionType: 'Laboratorio (100 min)', hasSplitSchedule: false, startTime2: '14:00', endTime2: '15:40', sessionType2: 'Práctica (100 min)' },
+    { day: 'Jueves', shortDay: 'JUE', active: false, startTime: '07:00', endTime: '08:40', sessionType: 'Sin sesión', hasSplitSchedule: false, startTime2: '14:00', endTime2: '15:40', sessionType2: 'Laboratorio (100 min)' },
+    { day: 'Viernes', shortDay: 'VIE', active: true, startTime: '08:50', endTime: '09:40', sessionType: 'Taller / Resolución (50 min)', hasSplitSchedule: false, startTime2: '14:00', endTime2: '15:40', sessionType2: 'Laboratorio (100 min)' },
   ]);
 
   const [syncCalendar, setSyncCalendar] = useState(true);
   const [lateTolerance, setLateTolerance] = useState('10 min');
 
-  // Criteria & Weights
+  // Criteria & Weights (6 criterios oficiales: Trabajos, Exámenes, Asistencia, Participación, Proyectos, Autoevaluación)
   const [criteriaPreset, setCriteriaPreset] = useState<'aulagrade' | 'copy' | 'scratch'>('aulagrade');
   const [evaluationStructure, setEvaluationStructure] = useState<EvaluationStructure>('parciales');
   const [numberOfPeriods, setNumberOfPeriods] = useState<number>(3);
   const [weights, setWeights] = useState({
-    homework: 35,
+    homework: 25,
     exams: 20,
-    attendance: 20,
+    attendance: 15,
     participation: 15,
+    projects: 15,
     selfEval: 10,
   });
   const [gradeScale, setGradeScale] = useState<'decimal' | 'centesimal' | 'letters'>('decimal');
@@ -87,7 +88,7 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
     }
   }).join(', ');
 
-  const totalWeight = weights.homework + weights.exams + weights.attendance + weights.participation + weights.selfEval;
+  const totalWeight = weights.homework + weights.exams + weights.attendance + weights.participation + (weights.projects || 0) + weights.selfEval;
   const capacityPercent = Math.min(100, Math.round((students.length / (capacity || 1)) * 100 * 10) / 10);
 
   // Toggle active day
@@ -105,8 +106,25 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
     }));
   };
 
-  // Change schedule row times
-  const updateSchedule = (day: WeekDay, field: 'startTime' | 'endTime' | 'sessionType', val: string) => {
+  // Toggle split schedule (second time block for split hours)
+  const toggleSplitSchedule = (day: WeekDay) => {
+    setSchedules(prev => prev.map(s => {
+      if (s.day === day) {
+        const nextVal = !s.hasSplitSchedule;
+        return {
+          ...s,
+          hasSplitSchedule: nextVal,
+          startTime2: s.startTime2 || '14:00',
+          endTime2: s.endTime2 || '15:40',
+          sessionType2: s.sessionType2 || 'Laboratorio (100 min)'
+        };
+      }
+      return s;
+    }));
+  };
+
+  // Change schedule row times for either block 1 or block 2
+  const updateSchedule = (day: WeekDay, field: 'startTime' | 'endTime' | 'sessionType' | 'startTime2' | 'endTime2' | 'sessionType2', val: string) => {
     setSchedules(prev => prev.map(s => s.day === day ? { ...s, [field]: val } : s));
   };
 
@@ -207,12 +225,19 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
   const handleSelectPreset = (preset: 'aulagrade' | 'copy' | 'scratch') => {
     setCriteriaPreset(preset);
     if (preset === 'aulagrade') {
-      setWeights({ homework: 35, exams: 20, attendance: 20, participation: 15, selfEval: 10 });
+      setWeights({ homework: 25, exams: 20, attendance: 15, participation: 15, projects: 15, selfEval: 10 });
     } else if (preset === 'copy' && existingGroups.length > 0) {
       const g = existingGroups[0];
-      setWeights(g.criteria.weights);
+      setWeights({
+        homework: g.criteria.weights.homework,
+        exams: g.criteria.weights.exams,
+        attendance: g.criteria.weights.attendance,
+        participation: g.criteria.weights.participation,
+        projects: g.criteria.weights.projects ?? 15,
+        selfEval: g.criteria.weights.selfEval,
+      });
     } else if (preset === 'scratch') {
-      setWeights({ homework: 20, exams: 20, attendance: 20, participation: 20, selfEval: 20 });
+      setWeights({ homework: 20, exams: 20, attendance: 15, participation: 15, projects: 20, selfEval: 10 });
     }
   };
 
@@ -617,15 +642,17 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
                     key={item.day}
                     type="button"
                     onClick={() => toggleDay(item.day)}
-                    className={`py-space-sm rounded-lg flex flex-col items-center gap-1 transition-all cursor-pointer ${
+                    className={`py-space-sm px-1 rounded-lg flex flex-col items-center gap-1 transition-all cursor-pointer ${
                       item.active
                         ? 'bg-primary-container text-on-primary shadow-sm hover:opacity-95'
                         : 'bg-surface-container-low hover:bg-surface-container text-on-surface-variant'
                     }`}
                   >
                     <span className="text-xs font-bold">{item.shortDay}</span>
-                    <span className={`text-[11px] ${item.active ? 'text-on-primary-container font-mono-numeric' : 'text-outline'}`}>
-                      {item.active ? `${item.startTime} - ${item.endTime}` : 'Sin sesión'}
+                    <span className={`text-[10px] text-center ${item.active ? 'text-on-primary-container font-mono-numeric' : 'text-outline'}`}>
+                      {item.active 
+                        ? `${item.startTime}-${item.endTime}${item.hasSplitSchedule ? ` + ${item.startTime2 || '14:00'}` : ''}` 
+                        : 'Sin sesión'}
                     </span>
                   </button>
                 ))}
@@ -648,46 +675,120 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
                 </div>
               ) : (
                 schedules.filter(s => s.active).map((item) => (
-                  <div key={item.day} className="bg-surface-container-lowest p-2 rounded-lg flex items-center justify-between gap-space-sm shadow-sm border border-[#E2E8F0]">
-                    <div className="w-24 pl-space-xs flex items-center gap-1.5 text-xs text-on-surface font-semibold">
-                      <span className="w-2 h-2 rounded-full bg-secondary shrink-0"></span>
-                      <span>{item.day}</span>
+                  <div key={item.day} className="bg-surface-container-lowest p-2.5 rounded-xl flex flex-col gap-2 shadow-xs border border-[#E2E8F0]">
+                    {/* Bloque Principal / Bloque 1 */}
+                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
+                      <div className="w-24 pl-space-xs flex items-center gap-1.5 text-xs text-on-surface font-semibold shrink-0">
+                        <span className="w-2 h-2 rounded-full bg-secondary shrink-0"></span>
+                        <span>{item.day}</span>
+                        {item.hasSplitSchedule && (
+                          <span className="text-[9px] bg-secondary/10 text-secondary font-bold px-1 rounded">2 Bloques</span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-slate-400 font-medium">B1:</span>
+                        <input 
+                          value={item.startTime}
+                          onChange={(e) => updateSchedule(item.day, 'startTime', e.target.value)}
+                          className="h-8 w-20 px-1 bg-surface-container-low rounded font-mono-numeric text-xs text-on-surface text-center focus:outline-none border border-[#CBD5E1]" 
+                          type="time" 
+                          title="Hora de inicio bloque 1"
+                        />
+                        <span className="text-[10px] text-slate-400">a</span>
+                        <input 
+                          value={item.endTime}
+                          onChange={(e) => updateSchedule(item.day, 'endTime', e.target.value)}
+                          className="h-8 w-20 px-1 bg-surface-container-low rounded font-mono-numeric text-xs text-on-surface text-center focus:outline-none border border-[#CBD5E1]" 
+                          type="time" 
+                          title="Hora de fin bloque 1"
+                        />
+                      </div>
+
+                      <select
+                        value={item.sessionType}
+                        onChange={(e) => updateSchedule(item.day, 'sessionType', e.target.value)}
+                        className="px-2.5 py-1 rounded-lg bg-surface-container-high text-on-surface text-xs font-medium border border-transparent focus:outline-none cursor-pointer flex-1 min-w-32"
+                      >
+                        <option>Teoría (100 min)</option>
+                        <option>Laboratorio (100 min)</option>
+                        <option>Taller / Resolución (50 min)</option>
+                        <option>Seminario Práctico (90 min)</option>
+                        <option>Práctica de Campo (120 min)</option>
+                      </select>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => toggleSplitSchedule(item.day)}
+                          className={`px-2 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer border ${
+                            item.hasSplitSchedule
+                              ? 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                              : 'bg-surface-container text-primary border-[#CBD5E1] hover:bg-primary/10'
+                          }`}
+                          title="Permite agregar un segundo horario en el mismo día si las horas no son corridas (horario quebrado)"
+                        >
+                          <span className="material-symbols-outlined text-[13px]">
+                            {item.hasSplitSchedule ? 'remove_circle_outline' : 'add_circle'}
+                          </span>
+                          <span>{item.hasSplitSchedule ? 'Quitar 2do Horario' : '+ 2do Horario (Quebrado)'}</span>
+                        </button>
+
+                        <button 
+                          onClick={() => deleteSession(item.day)}
+                          className="p-1 rounded text-outline hover:text-error hover:bg-error/10 transition-colors cursor-pointer" 
+                          title="Eliminar día de clase" 
+                          type="button"
+                        >
+                          <span className="material-symbols-outlined text-base">delete</span>
+                        </button>
+                      </div>
                     </div>
 
-                    <input 
-                      value={item.startTime}
-                      onChange={(e) => updateSchedule(item.day, 'startTime', e.target.value)}
-                      className="h-8 px-2 bg-surface-container-low rounded font-mono-numeric text-xs text-on-surface text-center focus:outline-none border border-[#CBD5E1]" 
-                      type="time" 
-                    />
+                    {/* Bloque 2 para horario quebrado (horas no corridas en un solo día) */}
+                    {item.hasSplitSchedule && (
+                      <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pl-6 pr-2 py-1.5 bg-amber-50/60 rounded-lg border border-amber-200/80 animate-fadeIn">
+                        <div className="w-24 flex items-center gap-1.5 text-xs text-amber-900 font-semibold shrink-0">
+                          <span className="material-symbols-outlined text-xs text-amber-600">subdirectory_arrow_right</span>
+                          <span>Segundo Bloque</span>
+                        </div>
 
-                    <input 
-                      value={item.endTime}
-                      onChange={(e) => updateSchedule(item.day, 'endTime', e.target.value)}
-                      className="h-8 px-2 bg-surface-container-low rounded font-mono-numeric text-xs text-on-surface text-center focus:outline-none border border-[#CBD5E1]" 
-                      type="time" 
-                    />
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-amber-700 font-medium">B2:</span>
+                          <input 
+                            value={item.startTime2 || '14:00'}
+                            onChange={(e) => updateSchedule(item.day, 'startTime2', e.target.value)}
+                            className="h-8 w-20 px-1 bg-white rounded font-mono-numeric text-xs text-on-surface text-center focus:outline-none border border-amber-300" 
+                            type="time" 
+                            title="Hora de inicio bloque 2"
+                          />
+                          <span className="text-[10px] text-amber-700">a</span>
+                          <input 
+                            value={item.endTime2 || '15:40'}
+                            onChange={(e) => updateSchedule(item.day, 'endTime2', e.target.value)}
+                            className="h-8 w-20 px-1 bg-white rounded font-mono-numeric text-xs text-on-surface text-center focus:outline-none border border-amber-300" 
+                            type="time" 
+                            title="Hora de fin bloque 2"
+                          />
+                        </div>
 
-                    <select
-                      value={item.sessionType}
-                      onChange={(e) => updateSchedule(item.day, 'sessionType', e.target.value)}
-                      className="px-space-sm py-1 rounded-full bg-surface-container-high text-on-surface text-xs font-medium border border-transparent focus:outline-none cursor-pointer"
-                    >
-                      <option>Teoría (100 min)</option>
-                      <option>Laboratorio (100 min)</option>
-                      <option>Taller / Resolución (50 min)</option>
-                      <option>Seminario Práctico (90 min)</option>
-                      <option>Práctica de Campo (120 min)</option>
-                    </select>
+                        <select
+                          value={item.sessionType2 || 'Laboratorio (100 min)'}
+                          onChange={(e) => updateSchedule(item.day, 'sessionType2', e.target.value)}
+                          className="px-2.5 py-1 rounded-lg bg-white text-on-surface text-xs font-medium border border-amber-300 focus:outline-none cursor-pointer flex-1 min-w-32"
+                        >
+                          <option>Laboratorio (100 min)</option>
+                          <option>Taller / Resolución (50 min)</option>
+                          <option>Teoría (100 min)</option>
+                          <option>Seminario Práctico (90 min)</option>
+                          <option>Práctica de Campo (120 min)</option>
+                        </select>
 
-                    <button 
-                      onClick={() => deleteSession(item.day)}
-                      className="p-1.5 rounded text-outline hover:text-error hover:bg-error/10 transition-colors cursor-pointer" 
-                      title="Eliminar sesión" 
-                      type="button"
-                    >
-                      <span className="material-symbols-outlined text-base">delete</span>
-                    </button>
+                        <span className="text-[10px] text-amber-800 font-medium px-2 py-0.5 bg-amber-100 rounded">
+                          Turno Vespertino / Desfasado
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
@@ -868,7 +969,7 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
             {/* Barra Visual de Ponderación Dinámica */}
             <div className="flex flex-col gap-space-xs pt-space-xs">
               <div className="flex justify-between items-center text-xs font-semibold">
-                <span className="text-on-surface-variant">Distribución de Ponderación</span>
+                <span className="text-on-surface-variant">Distribución de Ponderación (6 Criterios Totales)</span>
                 <span className={`font-mono-numeric ${totalWeight === 100 ? 'text-secondary' : 'text-error font-bold'}`}>
                   {totalWeight}% Asignado {totalWeight !== 100 && '(Debe sumar 100%)'}
                 </span>
@@ -878,6 +979,7 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
                 <div className="bg-primary h-full transition-all duration-300" style={{ width: `${weights.exams}%` }} title={`Exámenes y Pruebas: ${weights.exams}%`}></div>
                 <div className="bg-tertiary-container h-full transition-all duration-300" style={{ width: `${weights.attendance}%` }} title={`Asistencia y Puntualidad: ${weights.attendance}%`}></div>
                 <div className="bg-secondary-container h-full transition-all duration-300" style={{ width: `${weights.participation}%` }} title={`Participación y Talleres: ${weights.participation}%`}></div>
+                <div className="bg-indigo-600 h-full transition-all duration-300" style={{ width: `${weights.projects}%` }} title={`Proyectos: ${weights.projects}%`}></div>
                 <div className="bg-primary-fixed-dim h-full transition-all duration-300" style={{ width: `${weights.selfEval}%` }} title={`Autoevaluación: ${weights.selfEval}%`}></div>
               </div>
 
@@ -929,6 +1031,19 @@ export const AltaGrupoView: React.FC<AltaGrupoViewProps> = ({
                     className="w-12 h-6 bg-white border border-[#CBD5E1] rounded text-center font-mono-numeric text-xs font-semibold"
                   />
                   <span>%</span>
+                </div>
+
+                {/* 6to Criterio: Proyectos */}
+                <div className="flex items-center gap-1.5 text-xs text-on-surface bg-indigo-50 border border-indigo-200 px-2 py-1 rounded">
+                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+                  <span className="font-semibold text-indigo-950">Proyectos</span>
+                  <input 
+                    type="number" 
+                    value={weights.projects} 
+                    onChange={(e) => setWeights({ ...weights, projects: Number(e.target.value) })}
+                    className="w-12 h-6 bg-white border border-indigo-300 rounded text-center font-mono-numeric text-xs font-bold text-indigo-900"
+                  />
+                  <span className="text-indigo-900 font-bold">%</span>
                 </div>
 
                 <div className="flex items-center gap-1.5 text-xs text-on-surface bg-surface-container-low px-2 py-1 rounded">

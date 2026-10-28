@@ -24,10 +24,11 @@ export const CriteriaView: React.FC<CriteriaViewProps> = ({
   const currentGroup = groups.find((g) => g.id === selectedGroupId) || groups[0];
 
   const [weights, setWeights] = useState(currentGroup?.criteria.weights || {
-    homework: 35,
+    homework: 25,
     exams: 20,
-    attendance: 20,
+    attendance: 15,
     participation: 15,
+    projects: 15,
     selfEval: 10,
   });
   const [scale, setScale] = useState<'decimal' | 'centesimal' | 'letters'>(currentGroup?.criteria.scale || 'decimal');
@@ -39,7 +40,14 @@ export const CriteriaView: React.FC<CriteriaViewProps> = ({
   // Sync if selected group changes
   React.useEffect(() => {
     if (currentGroup) {
-      setWeights(currentGroup.criteria.weights);
+      setWeights({
+        homework: currentGroup.criteria.weights.homework,
+        exams: currentGroup.criteria.weights.exams,
+        attendance: currentGroup.criteria.weights.attendance,
+        participation: currentGroup.criteria.weights.participation,
+        projects: currentGroup.criteria.weights.projects ?? 15,
+        selfEval: currentGroup.criteria.weights.selfEval,
+      });
       setScale(currentGroup.criteria.scale);
       setMinPassingGrade(currentGroup.criteria.minPassingGrade);
       setEvaluationStructure(currentGroup.criteria.evaluationStructure || 'parciales');
@@ -61,7 +69,7 @@ export const CriteriaView: React.FC<CriteriaViewProps> = ({
     );
   }
 
-  const totalWeight = weights.homework + weights.exams + weights.attendance + weights.participation + weights.selfEval;
+  const totalWeight = weights.homework + weights.exams + weights.attendance + weights.participation + (weights.projects || 0) + weights.selfEval;
 
   const handleSave = () => {
     if (totalWeight !== 100) return;
@@ -203,14 +211,15 @@ export const CriteriaView: React.FC<CriteriaViewProps> = ({
               </span>
             </div>
 
-            {/* Dynamic Distribution Bar */}
+            {/* Dynamic Distribution Bar (6 Criterios Oficiales) */}
             <div className="flex flex-col gap-2">
               <div className="h-4 w-full bg-surface-container-high rounded-full overflow-hidden flex shadow-inner">
-                <div className="bg-secondary h-full transition-all duration-300" style={{ width: `${weights.homework}%` }}></div>
-                <div className="bg-primary h-full transition-all duration-300" style={{ width: `${weights.exams}%` }}></div>
-                <div className="bg-tertiary-container h-full transition-all duration-300" style={{ width: `${weights.attendance}%` }}></div>
-                <div className="bg-secondary-container h-full transition-all duration-300" style={{ width: `${weights.participation}%` }}></div>
-                <div className="bg-primary-fixed-dim h-full transition-all duration-300" style={{ width: `${weights.selfEval}%` }}></div>
+                <div className="bg-secondary h-full transition-all duration-300" style={{ width: `${weights.homework}%` }} title={`Tareas y Trabajos: ${weights.homework}%`}></div>
+                <div className="bg-primary h-full transition-all duration-300" style={{ width: `${weights.exams}%` }} title={`Exámenes y Pruebas: ${weights.exams}%`}></div>
+                <div className="bg-tertiary-container h-full transition-all duration-300" style={{ width: `${weights.attendance}%` }} title={`Asistencia y Puntualidad: ${weights.attendance}%`}></div>
+                <div className="bg-secondary-container h-full transition-all duration-300" style={{ width: `${weights.participation}%` }} title={`Participación y Talleres: ${weights.participation}%`}></div>
+                <div className="bg-indigo-600 h-full transition-all duration-300" style={{ width: `${weights.projects}%` }} title={`Proyectos: ${weights.projects}%`}></div>
+                <div className="bg-primary-fixed-dim h-full transition-all duration-300" style={{ width: `${weights.selfEval}%` }} title={`Autoevaluación: ${weights.selfEval}%`}></div>
               </div>
             </div>
 
@@ -300,7 +309,29 @@ export const CriteriaView: React.FC<CriteriaViewProps> = ({
                 </div>
               </div>
 
-              <div className="p-3 bg-surface-container-low rounded-lg border border-[#E2E8F0] flex items-center justify-between sm:col-span-2">
+              {/* Criterio 5: Proyectos (Nuevo) */}
+              <div className="p-3 bg-indigo-50/60 rounded-lg border border-indigo-200 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-indigo-600"></span>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-indigo-950">Proyectos / Modulares</span>
+                    <span className="text-[10px] text-indigo-700">Proyectos modulares, prototipos y ferias</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={weights.projects}
+                    onChange={(e) => setWeights({ ...weights, projects: Number(e.target.value) })}
+                    className="w-14 h-8 bg-white border border-indigo-300 rounded text-center font-mono-numeric text-xs font-bold text-indigo-900"
+                  />
+                  <span className="text-xs font-bold text-indigo-900">%</span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-surface-container-low rounded-lg border border-[#E2E8F0] flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-3 h-3 rounded-full bg-primary-fixed-dim"></span>
                   <div className="flex flex-col">

@@ -83,7 +83,7 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
     const periodAssignments = groupAssignments.filter(a => a.periodIndex === periodIdx);
     if (periodAssignments.length === 0) return 10.0;
 
-    const getCatPeriodAvg = (category: 'homework' | 'exams' | 'attendance' | 'participation' | 'selfEval') => {
+    const getCatPeriodAvg = (category: 'homework' | 'exams' | 'attendance' | 'participation' | 'projects' | 'selfEval') => {
       const catAsgs = periodAssignments.filter(a => a.category === category);
       if (catAsgs.length === 0) return 10.0;
       let sum = 0;
@@ -101,6 +101,7 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
     const exam = getCatPeriodAvg('exams');
     const att = getCatPeriodAvg('attendance');
     const part = getCatPeriodAvg('participation');
+    const proj = getCatPeriodAvg('projects');
     const self = getCatPeriodAvg('selfEval');
 
     const weighted = (
@@ -108,6 +109,7 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
       (exam * weights.exams) +
       (att * weights.attendance) +
       (part * weights.participation) +
+      (proj * (weights.projects || 0)) +
       (self * weights.selfEval)
     ) / 100;
 
@@ -115,7 +117,7 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
   };
 
   // Calculate cumulative criterion average across entire course
-  const calculateCriterionCumulative = (studentId: string, category: 'homework' | 'exams' | 'attendance' | 'participation' | 'selfEval') => {
+  const calculateCriterionCumulative = (studentId: string, category: 'homework' | 'exams' | 'attendance' | 'participation' | 'projects' | 'selfEval') => {
     const studentScores = scores[studentId] || {};
     const catAssignments = groupAssignments.filter(a => a.category === category);
     if (catAssignments.length === 0) return 10.0;
@@ -191,6 +193,7 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
       `Exámenes (${weights.exams}%)`,
       `Asistencia (${weights.attendance}%)`,
       `Participación (${weights.participation}%)`,
+      `Proyectos (${weights.projects || 0}%)`,
       `Autoeval (${weights.selfEval}%)`,
       'Promedio Final Oficial',
       'Dictamen Oficial',
@@ -207,6 +210,7 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
       const ex = calculateCriterionCumulative(s.id, 'exams').toFixed(1);
       const att = calculateCriterionCumulative(s.id, 'attendance').toFixed(1);
       const part = calculateCriterionCumulative(s.id, 'participation').toFixed(1);
+      const proj = calculateCriterionCumulative(s.id, 'projects').toFixed(1);
       const self = calculateCriterionCumulative(s.id, 'selfEval').toFixed(1);
       const note = teacherNotes[s.id] || '';
 
@@ -219,6 +223,7 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
         ex,
         att,
         part,
+        proj,
         self,
         finalGrade.toFixed(1),
         `"${status.label}"`,
@@ -453,8 +458,8 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
             <span className="text-on-surface font-bold">Sábana Oficial de Evaluación Consolidada</span>
             <span className="text-[11px] text-on-surface-variant font-mono-numeric">({filteredStudents.length} alumnos listados)</span>
           </div>
-          <div className="flex items-center gap-3 text-[11px] font-semibold text-on-surface-variant">
-            <span>Ponderación Criterios:</span>
+          <div className="flex items-center gap-3 text-[11px] font-semibold text-on-surface-variant flex-wrap">
+            <span>Ponderación Criterios (6 Totales):</span>
             <span className="font-mono-numeric text-primary">Trabajos {weights.homework}%</span>
             <span>•</span>
             <span className="font-mono-numeric text-primary">Examen {weights.exams}%</span>
@@ -462,6 +467,8 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
             <span className="font-mono-numeric text-primary">Asistencia {weights.attendance}%</span>
             <span>•</span>
             <span className="font-mono-numeric text-primary">Part. {weights.participation}%</span>
+            <span>•</span>
+            <span className="font-mono-numeric text-indigo-700 font-bold bg-indigo-50 px-1 rounded">Proyectos {weights.projects || 0}%</span>
             <span>•</span>
             <span className="font-mono-numeric text-primary">Auto. {weights.selfEval}%</span>
           </div>
@@ -478,8 +485,8 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
                 <th colSpan={numPeriods} className="py-2 px-3 border-r border-[#CBD5E1] text-center bg-secondary/5 text-secondary">
                   Cortes Evaluativos ({structure.toUpperCase()})
                 </th>
-                <th colSpan={5} className="py-2 px-3 border-r border-[#CBD5E1] text-center bg-primary/5 text-primary">
-                  Desglose Acumulado por Criterios de Evaluación
+                <th colSpan={6} className="py-2 px-3 border-r border-[#CBD5E1] text-center bg-primary/5 text-primary">
+                  Desglose Acumulado por Criterios de Evaluación (6 Criterios)
                 </th>
                 <th colSpan={3} className="py-2 px-3 text-center bg-surface-container-low">
                   Dictamen Final
@@ -522,6 +529,10 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
                   <span className="font-bold text-on-surface">Part.</span>
                   <div className="text-[10px] text-primary font-mono-numeric">({weights.participation}%)</div>
                 </th>
+                <th className="py-2 px-3 text-center min-w-24 border-r border-[#CBD5E1] bg-indigo-50/70">
+                  <span className="font-bold text-indigo-950">Proyectos</span>
+                  <div className="text-[10px] text-indigo-700 font-mono-numeric">({weights.projects || 0}%)</div>
+                </th>
                 <th className="py-2 px-3 text-center min-w-24 border-r border-[#CBD5E1] bg-primary/5">
                   <span className="font-bold text-on-surface">Auto.</span>
                   <div className="text-[10px] text-primary font-mono-numeric">({weights.selfEval}%)</div>
@@ -545,7 +556,7 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
             <tbody className="divide-y divide-[#F1F5F9]">
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={10 + numPeriods} className="text-center py-10 text-on-surface-variant text-xs">
+                  <td colSpan={11 + numPeriods} className="text-center py-10 text-on-surface-variant text-xs">
                     No se encontraron alumnos con los criterios de búsqueda seleccionados.
                   </td>
                 </tr>
@@ -625,6 +636,9 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
                       </td>
                       <td className="py-2.5 px-3 text-center border-r border-[#E2E8F0] font-mono-numeric text-xs text-on-surface">
                         {calculateCriterionCumulative(student.id, 'participation').toFixed(1)}
+                      </td>
+                      <td className="py-2.5 px-3 text-center border-r border-[#E2E8F0] font-mono-numeric text-xs font-bold text-indigo-900 bg-indigo-50/20">
+                        {calculateCriterionCumulative(student.id, 'projects').toFixed(1)}
                       </td>
                       <td className="py-2.5 px-3 text-center border-r border-[#E2E8F0] font-mono-numeric text-xs text-on-surface">
                         {calculateCriterionCumulative(student.id, 'selfEval').toFixed(1)}
@@ -783,6 +797,7 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
                       <th className="py-2 px-3 text-center">Exámenes ({weights.exams}%)</th>
                       <th className="py-2 px-3 text-center">Asistencia ({weights.attendance}%)</th>
                       <th className="py-2 px-3 text-center">Part. ({weights.participation}%)</th>
+                      <th className="py-2 px-3 text-center text-indigo-900 font-bold bg-indigo-50/50">Proyectos ({weights.projects || 0}%)</th>
                       <th className="py-2 px-3 text-center">Auto. ({weights.selfEval}%)</th>
                       <th className="py-2 px-3 text-center font-bold text-primary bg-primary/5">Promedio Corte</th>
                     </tr>
@@ -804,6 +819,9 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
                           </td>
                           <td className="py-2 px-3 text-center font-mono-numeric">
                             {calculateCriterionCumulative(selectedStudentForBoleta.id, 'participation').toFixed(1)}
+                          </td>
+                          <td className="py-2 px-3 text-center font-mono-numeric font-bold text-indigo-900 bg-indigo-50/20">
+                            {calculateCriterionCumulative(selectedStudentForBoleta.id, 'projects').toFixed(1)}
                           </td>
                           <td className="py-2 px-3 text-center font-mono-numeric">
                             {calculateCriterionCumulative(selectedStudentForBoleta.id, 'selfEval').toFixed(1)}

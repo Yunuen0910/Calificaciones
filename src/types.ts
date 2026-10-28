@@ -49,6 +49,11 @@ export interface SessionSchedule {
   startTime: string;
   endTime: string;
   sessionType: string;
+  // Soporte para horario quebrado / doble horario en un mismo día (ej. horas no corridas)
+  hasSplitSchedule?: boolean;
+  startTime2?: string;
+  endTime2?: string;
+  sessionType2?: string;
 }
 
 export type EvaluationStructure = 'parciales' | 'trimestres' | 'bimestres' | 'cuatrimestres' | 'periodos' | 'ciclo_unico';
@@ -58,11 +63,12 @@ export interface GradingCriteria {
   evaluationStructure: EvaluationStructure;
   numberOfPeriods: number; // e.g. 3 trimestres, 3 parciales, 5 bimestres
   weights: {
-    homework: number;     // Trabajos (35%)
-    exams: number;        // Exámenes (20%)
-    attendance: number;   // Asistencia (20%)
-    participation: number;// Participación (15%)
-    selfEval: number;     // Autoevaluación (10%)
+    homework: number;      // Tareas y Trabajos (25%)
+    exams: number;         // Exámenes y Pruebas (20%)
+    attendance: number;    // Asistencia y Puntualidad (15%)
+    participation: number; // Participación y Talleres (15%)
+    projects: number;      // Proyectos / Proyecto Modular (15%)
+    selfEval: number;      // Autoevaluación (10%)
   };
   scale: 'decimal' | 'centesimal' | 'letters';
   minPassingGrade: number;
@@ -95,7 +101,7 @@ export interface AssignmentGrade {
   id: string;
   groupId?: string; // Group ID to which this assignment belongs
   name: string;
-  category: 'homework' | 'exams' | 'attendance' | 'participation' | 'selfEval';
+  category: 'homework' | 'exams' | 'attendance' | 'participation' | 'projects' | 'selfEval';
   periodIndex?: number; // 1, 2, 3...
   maxScore: number;
 }
