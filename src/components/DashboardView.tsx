@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Group } from '../types';
+import { Group, SessionSchedule } from '../types';
 
 interface DashboardViewProps {
   groups: Group[];
@@ -36,6 +36,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [filterShift, setFilterShift] = useState<'Todos' | 'Matutino' | 'Vespertino' | 'Mixto'>('Todos');
   const [searchQuery, setSearchQuery] = useState('');
   const [groupToEdit, setGroupToEdit] = useState<Group | null>(null);
+  const [editModalTab, setEditModalTab] = useState<'info' | 'schedule'>('info');
   const [editSuccessToast, setEditSuccessToast] = useState(false);
 
   const filteredGroups = groups.filter((g) => {
@@ -309,10 +310,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <span>Turno {group.shift}</span>
                   </div>
 
-                  <div className="flex items-center gap-1.5 bg-surface-container-lowest p-space-xs rounded border border-[#E2E8F0]">
-                    <span className="material-symbols-outlined text-secondary text-base">calendar_month</span>
-                    <span className="truncate">{daysText || 'Por definir'}</span>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGroupToEdit({ ...group });
+                      setEditModalTab('schedule');
+                    }}
+                    className="flex items-center gap-1.5 bg-surface-container-lowest hover:bg-surface-container-high/60 p-space-xs rounded border border-[#E2E8F0] text-left cursor-pointer transition-colors group/sched text-xs text-on-surface-variant"
+                    title="Clic para configurar y editar el horario de clases de esta materia"
+                  >
+                    <span className="material-symbols-outlined text-secondary text-base group-hover/sched:text-primary shrink-0">calendar_month</span>
+                    <span className="truncate flex-1">{daysText || 'Configurar horario'}</span>
+                    <span className="material-symbols-outlined text-[13px] text-slate-400 group-hover/sched:text-primary shrink-0">edit</span>
+                  </button>
 
                   <div className="flex items-center gap-1.5 bg-surface-container-lowest p-space-xs rounded border border-[#E2E8F0]">
                     <span className="material-symbols-outlined text-secondary text-base">group</span>
@@ -415,20 +425,53 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       )}
 
-      {/* Modal: Editar Grupo (Permite corregir semestre, sección como 2° C, aula, etc.) */}
+      {/* Modal: Editar Grupo (Permite corregir semestre, sección como 2° C, aula y horario completo) */}
       {groupToEdit && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface-container-lowest rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-[#CBD5E1] animate-fadeIn">
-            <div className="flex items-center justify-between pb-3 border-b border-[#F1F5F9]">
+          <div className="bg-surface-container-lowest rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-[#CBD5E1] animate-fadeIn max-h-[92vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-[#F1F5F9] shrink-0">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary text-xl">edit_square</span>
-                <h3 className="text-sm font-bold text-on-surface">Editar Información del Grupo</h3>
+                <div>
+                  <h3 className="text-sm font-bold text-on-surface">Configurar y Editar Grupo</h3>
+                  <span className="text-[11px] text-on-surface-variant font-mono-numeric">
+                    {groupToEdit.code} • {groupToEdit.semester} ({groupToEdit.section})
+                  </span>
+                </div>
               </div>
               <button
                 onClick={() => setGroupToEdit(null)}
                 className="text-outline hover:text-on-surface cursor-pointer"
               >
                 <span className="material-symbols-outlined text-base">close</span>
+              </button>
+            </div>
+
+            {/* Modal Tabs: Datos vs Horario */}
+            <div className="flex border-b border-[#E2E8F0] gap-4 pt-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setEditModalTab('info')}
+                className={`pb-2 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 cursor-pointer ${
+                  editModalTab === 'info'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <span className="material-symbols-outlined text-base">info</span>
+                <span>Información General</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditModalTab('schedule')}
+                className={`pb-2 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 cursor-pointer ${
+                  editModalTab === 'schedule'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <span className="material-symbols-outlined text-base">calendar_month</span>
+                <span>Horario de Clases (Días y Horarios Quebrados)</span>
               </button>
             </div>
 
@@ -443,99 +486,308 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 setEditSuccessToast(true);
                 setTimeout(() => setEditSuccessToast(false), 3000);
               }}
-              className="flex flex-col gap-3 pt-4 text-xs"
+              className="flex flex-col flex-1 overflow-y-auto pt-4 text-xs pr-1"
             >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="sm:col-span-2">
-                  <label className="font-semibold text-on-surface">Nombre de la Asignatura *</label>
-                  <input
-                    required
-                    value={groupToEdit.name}
-                    onChange={(e) => setGroupToEdit({ ...groupToEdit, name: e.target.value })}
-                    className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1] font-medium"
-                    placeholder="Ej. Física Cuántica I"
-                  />
-                </div>
+              {editModalTab === 'info' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="font-semibold text-on-surface">Nombre de la Asignatura *</label>
+                    <input
+                      required
+                      value={groupToEdit.name}
+                      onChange={(e) => setGroupToEdit({ ...groupToEdit, name: e.target.value })}
+                      className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1] font-medium"
+                      placeholder="Ej. Física Cuántica I"
+                    />
+                  </div>
 
-                <div>
-                  <label className="font-semibold text-on-surface">Código / Clave *</label>
-                  <input
-                    required
-                    value={groupToEdit.code}
-                    onChange={(e) => setGroupToEdit({ ...groupToEdit, code: e.target.value.toUpperCase() })}
-                    className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1] font-mono-numeric uppercase font-bold"
-                  />
-                </div>
+                  <div>
+                    <label className="font-semibold text-on-surface">Código / Clave *</label>
+                    <input
+                      required
+                      value={groupToEdit.code}
+                      onChange={(e) => setGroupToEdit({ ...groupToEdit, code: e.target.value.toUpperCase() })}
+                      className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1] font-mono-numeric uppercase font-bold"
+                    />
+                  </div>
 
-                <div>
-                  <label className="font-semibold text-on-surface">Semestre / Grado *</label>
-                  <select
-                    value={groupToEdit.semester}
-                    onChange={(e) => setGroupToEdit({ ...groupToEdit, semester: e.target.value })}
-                    className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1] font-semibold text-primary cursor-pointer"
-                  >
-                    <option value="1er Semestre">1er Semestre / 1° Grado</option>
-                    <option value="2do Semestre">2do Semestre / 2° Grado (2° C)</option>
-                    <option value="3er Semestre">3er Semestre / 3° Grado</option>
-                    <option value="4to Semestre">4to Semestre / 4° Grado</option>
-                    <option value="5to Semestre">5to Semestre / 5° Grado</option>
-                    <option value="6to Semestre">6to Semestre / 6° Grado</option>
-                    <option value="1° Año Escolar">1° Año Escolar</option>
-                    <option value="2° Año Escolar">2° Año Escolar</option>
-                    <option value="3° Año Escolar">3° Año Escolar</option>
-                  </select>
-                </div>
+                  <div>
+                    <label className="font-semibold text-on-surface">Semestre / Grado *</label>
+                    <select
+                      value={groupToEdit.semester}
+                      onChange={(e) => setGroupToEdit({ ...groupToEdit, semester: e.target.value })}
+                      className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1] font-semibold text-primary cursor-pointer"
+                    >
+                      <option value="1er Semestre">1er Semestre / 1° Grado</option>
+                      <option value="2do Semestre">2do Semestre / 2° Grado (2° C)</option>
+                      <option value="3er Semestre">3er Semestre / 3° Grado</option>
+                      <option value="4to Semestre">4to Semestre / 4° Grado</option>
+                      <option value="5to Semestre">5to Semestre / 5° Grado</option>
+                      <option value="6to Semestre">6to Semestre / 6° Grado</option>
+                      <option value="1° Año Escolar">1° Año Escolar</option>
+                      <option value="2° Año Escolar">2° Año Escolar</option>
+                      <option value="3° Año Escolar">3° Año Escolar</option>
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="font-semibold text-on-surface">Sección / Grupo</label>
-                  <select
-                    value={groupToEdit.section}
-                    onChange={(e) => setGroupToEdit({ ...groupToEdit, section: e.target.value as any })}
-                    className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1] font-semibold cursor-pointer"
-                  >
-                    <option value="Grupo A">Grupo A</option>
-                    <option value="Grupo B">Grupo B</option>
-                    <option value="Grupo C">Grupo C</option>
-                  </select>
-                </div>
+                  <div>
+                    <label className="font-semibold text-on-surface">Sección / Grupo</label>
+                    <select
+                      value={groupToEdit.section}
+                      onChange={(e) => setGroupToEdit({ ...groupToEdit, section: e.target.value as any })}
+                      className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1] font-semibold cursor-pointer"
+                    >
+                      <option value="Grupo A">Grupo A</option>
+                      <option value="Grupo B">Grupo B</option>
+                      <option value="Grupo C">Grupo C</option>
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="font-semibold text-on-surface">Turno</label>
-                  <select
-                    value={groupToEdit.shift}
-                    onChange={(e) => setGroupToEdit({ ...groupToEdit, shift: e.target.value as any })}
-                    className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1] cursor-pointer"
-                  >
-                    <option value="Matutino">Matutino</option>
-                    <option value="Vespertino">Vespertino</option>
-                    <option value="Mixto">Mixto</option>
-                  </select>
-                </div>
+                  <div>
+                    <label className="font-semibold text-on-surface">Turno</label>
+                    <select
+                      value={groupToEdit.shift}
+                      onChange={(e) => setGroupToEdit({ ...groupToEdit, shift: e.target.value as any })}
+                      className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1] cursor-pointer"
+                    >
+                      <option value="Matutino">Matutino</option>
+                      <option value="Vespertino">Vespertino</option>
+                      <option value="Mixto">Mixto</option>
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="font-semibold text-on-surface">Aula / Laboratorio</label>
-                  <input
-                    value={groupToEdit.classroom}
-                    onChange={(e) => setGroupToEdit({ ...groupToEdit, classroom: e.target.value })}
-                    className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1]"
-                    placeholder="Ej. Aula 204"
-                  />
-                </div>
+                  <div>
+                    <label className="font-semibold text-on-surface">Aula / Laboratorio</label>
+                    <input
+                      value={groupToEdit.classroom}
+                      onChange={(e) => setGroupToEdit({ ...groupToEdit, classroom: e.target.value })}
+                      className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1]"
+                      placeholder="Ej. Aula 204"
+                    />
+                  </div>
 
-                <div>
-                  <label className="font-semibold text-on-surface">Cupo Máximo</label>
-                  <input
-                    type="number"
-                    min="5"
-                    max="100"
-                    value={groupToEdit.capacity}
-                    onChange={(e) => setGroupToEdit({ ...groupToEdit, capacity: Number(e.target.value) })}
-                    className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1] font-mono-numeric"
-                  />
-                </div>
-              </div>
+                  <div>
+                    <label className="font-semibold text-on-surface">Cupo Máximo</label>
+                    <input
+                      type="number"
+                      min="5"
+                      max="100"
+                      value={groupToEdit.capacity}
+                      onChange={(e) => setGroupToEdit({ ...groupToEdit, capacity: Number(e.target.value) })}
+                      className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1] font-mono-numeric"
+                    />
+                  </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-[#F1F5F9] mt-2">
+                  <div>
+                    <label className="font-semibold text-on-surface">Tolerancia de Retardo</label>
+                    <select
+                      value={groupToEdit.lateTolerance || '10 min'}
+                      onChange={(e) => setGroupToEdit({ ...groupToEdit, lateTolerance: e.target.value })}
+                      className="w-full h-9 px-3 mt-1 bg-surface-container-low rounded-lg border border-[#CBD5E1] cursor-pointer font-medium"
+                    >
+                      <option value="5 min">5 minutos</option>
+                      <option value="10 min">10 minutos</option>
+                      <option value="15 min">15 minutos</option>
+                      <option value="20 min">20 minutos</option>
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                /* Horario de Clases Editor */
+                <div className="flex flex-col gap-3">
+                  <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl flex items-start gap-2.5">
+                    <span className="material-symbols-outlined text-primary text-lg shrink-0 mt-0.5">more_time</span>
+                    <div className="text-[11px] text-slate-700 leading-relaxed">
+                      <strong>Configuración de Días y Horarios:</strong> Activa los días en que imparte clase esta materia. Si las horas no son corridas (por ejemplo, clase matutina y laboratorio vespertino), marca la casilla <em>&ldquo;Horario quebrado (dos sesiones)&rdquo;</em> en el día correspondiente.
+                    </div>
+                  </div>
+
+                  <div className="divide-y divide-[#E2E8F0] border border-[#CBD5E1] rounded-xl overflow-hidden bg-white">
+                    {(groupToEdit.schedule || []).map((session, dayIdx) => (
+                      <div
+                        key={session.day}
+                        className={`p-3 transition-colors ${
+                          session.active ? 'bg-white' : 'bg-slate-50/70 opacity-75'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <label className="flex items-center gap-2 cursor-pointer font-bold text-xs text-slate-800">
+                            <input
+                              type="checkbox"
+                              checked={session.active}
+                              onChange={(e) => {
+                                const nextSched = [...(groupToEdit.schedule || [])];
+                                nextSched[dayIdx] = { ...session, active: e.target.checked };
+                                setGroupToEdit({ ...groupToEdit, schedule: nextSched });
+                              }}
+                              className="w-4 h-4 text-primary rounded border-[#CBD5E1] focus:ring-primary"
+                            />
+                            <span>{session.day}</span>
+                            <span className="text-[10px] font-mono text-slate-400">({session.shortDay})</span>
+                          </label>
+
+                          {session.active && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nextSched = (groupToEdit.schedule || []).map((s, idx) => {
+                                  if (idx !== dayIdx && s.active) {
+                                    return {
+                                      ...s,
+                                      startTime: session.startTime,
+                                      endTime: session.endTime,
+                                      sessionType: session.sessionType,
+                                      hasSplitSchedule: session.hasSplitSchedule,
+                                      startTime2: session.startTime2,
+                                      endTime2: session.endTime2,
+                                      sessionType2: session.sessionType2,
+                                    };
+                                  }
+                                  return s;
+                                });
+                                setGroupToEdit({ ...groupToEdit, schedule: nextSched });
+                              }}
+                              className="text-[10px] font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                              title="Copiar este horario a los demás días activos"
+                            >
+                              <span className="material-symbols-outlined text-xs">content_copy</span>
+                              <span>Copiar horario a días activos</span>
+                            </button>
+                          )}
+                        </div>
+
+                        {session.active && (
+                          <div className="mt-2.5 space-y-2 pl-6">
+                            {/* Primer Bloque de Horario */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                              <div>
+                                <label className="text-[10px] font-semibold text-slate-600 block">Hora Inicio</label>
+                                <input
+                                  type="time"
+                                  value={session.startTime}
+                                  onChange={(e) => {
+                                    const nextSched = [...(groupToEdit.schedule || [])];
+                                    nextSched[dayIdx] = { ...session, startTime: e.target.value };
+                                    setGroupToEdit({ ...groupToEdit, schedule: nextSched });
+                                  }}
+                                  className="w-full h-8 px-2 mt-0.5 bg-slate-50 border border-slate-300 rounded text-xs font-mono-numeric font-bold"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="text-[10px] font-semibold text-slate-600 block">Hora Término</label>
+                                <input
+                                  type="time"
+                                  value={session.endTime}
+                                  onChange={(e) => {
+                                    const nextSched = [...(groupToEdit.schedule || [])];
+                                    nextSched[dayIdx] = { ...session, endTime: e.target.value };
+                                    setGroupToEdit({ ...groupToEdit, schedule: nextSched });
+                                  }}
+                                  className="w-full h-8 px-2 mt-0.5 bg-slate-50 border border-slate-300 rounded text-xs font-mono-numeric font-bold"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="text-[10px] font-semibold text-slate-600 block">Tipo de Sesión</label>
+                                <input
+                                  type="text"
+                                  value={session.sessionType}
+                                  onChange={(e) => {
+                                    const nextSched = [...(groupToEdit.schedule || [])];
+                                    nextSched[dayIdx] = { ...session, sessionType: e.target.value };
+                                    setGroupToEdit({ ...groupToEdit, schedule: nextSched });
+                                  }}
+                                  placeholder="Ej. Teoría (100 min)"
+                                  className="w-full h-8 px-2 mt-0.5 bg-slate-50 border border-slate-300 rounded text-xs font-medium"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Casilla Horario Quebrado / Dos Horarios */}
+                            <div className="pt-1">
+                              <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-semibold text-indigo-900 bg-indigo-50/80 p-1.5 rounded border border-indigo-200">
+                                <input
+                                  type="checkbox"
+                                  checked={!!session.hasSplitSchedule}
+                                  onChange={(e) => {
+                                    const nextSched = [...(groupToEdit.schedule || [])];
+                                    nextSched[dayIdx] = {
+                                      ...session,
+                                      hasSplitSchedule: e.target.checked,
+                                      startTime2: session.startTime2 || '14:00',
+                                      endTime2: session.endTime2 || '15:40',
+                                      sessionType2: session.sessionType2 || 'Laboratorio (100 min)',
+                                    };
+                                    setGroupToEdit({ ...groupToEdit, schedule: nextSched });
+                                  }}
+                                  className="w-3.5 h-3.5 text-indigo-600 rounded border-indigo-300 focus:ring-indigo-500"
+                                />
+                                <span>Horas no corridas / Segundo horario en este día (Horario Quebrado)</span>
+                              </label>
+
+                              {session.hasSplitSchedule && (
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2 pl-4 border-l-2 border-indigo-300">
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-indigo-800 block">
+                                      2° Hora Inicio
+                                    </label>
+                                    <input
+                                      type="time"
+                                      value={session.startTime2 || '14:00'}
+                                      onChange={(e) => {
+                                        const nextSched = [...(groupToEdit.schedule || [])];
+                                        nextSched[dayIdx] = { ...session, startTime2: e.target.value };
+                                        setGroupToEdit({ ...groupToEdit, schedule: nextSched });
+                                      }}
+                                      className="w-full h-8 px-2 mt-0.5 bg-indigo-50/40 border border-indigo-300 rounded text-xs font-mono-numeric font-bold"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-indigo-800 block">
+                                      2° Hora Término
+                                    </label>
+                                    <input
+                                      type="time"
+                                      value={session.endTime2 || '15:40'}
+                                      onChange={(e) => {
+                                        const nextSched = [...(groupToEdit.schedule || [])];
+                                        nextSched[dayIdx] = { ...session, endTime2: e.target.value };
+                                        setGroupToEdit({ ...groupToEdit, schedule: nextSched });
+                                      }}
+                                      className="w-full h-8 px-2 mt-0.5 bg-indigo-50/40 border border-indigo-300 rounded text-xs font-mono-numeric font-bold"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-indigo-800 block">
+                                      2° Tipo de Sesión
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={session.sessionType2 || 'Laboratorio (100 min)'}
+                                      onChange={(e) => {
+                                        const nextSched = [...(groupToEdit.schedule || [])];
+                                        nextSched[dayIdx] = { ...session, sessionType2: e.target.value };
+                                        setGroupToEdit({ ...groupToEdit, schedule: nextSched });
+                                      }}
+                                      placeholder="Ej. Laboratorio (100 min)"
+                                      className="w-full h-8 px-2 mt-0.5 bg-indigo-50/40 border border-indigo-300 rounded text-xs font-medium"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#F1F5F9] mt-3 shrink-0">
                 <button
                   type="button"
                   onClick={() => setGroupToEdit(null)}

@@ -34,8 +34,13 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'passing' | 'risk' | 'failing'>('all');
+  const [selectedPeriodView, setSelectedPeriodView] = useState<'all' | number>('all');
   const [selectedStudentForBoleta, setSelectedStudentForBoleta] = useState<Student | null>(null);
-  const [editingCell, setEditingCell] = useState<{ studentId: string; category: 'homework' | 'exams' | 'attendance' | 'participation' | 'projects' | 'selfEval' } | null>(null);
+  const [editingCell, setEditingCell] = useState<{
+    studentId: string;
+    category: 'homework' | 'exams' | 'attendance' | 'participation' | 'projects' | 'selfEval';
+    periodIdx?: number;
+  } | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [toastFeedback, setToastFeedback] = useState<string | null>(null);
   const [teacherNotes, setTeacherNotes] = useState<Record<string, string>>({
@@ -84,11 +89,55 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
     return currentGroup.id === 'grp-fis-302';
   });
 
+  // Calculate criterion average for a specific period
+  const calculatePeriodCriterionAvg = (
+    studentId: string,
+    periodIdx: number,
+    category: 'homework' | 'exams' | 'attendance' | 'participation' | 'projects' | 'selfEval'
+  ) => {
+    const studentScores = scores[studentId] || {};
+    const periodSpecificKey = `cat_${currentGroup.id}_p${periodIdx}_${category}`;
+    const generalKey = `cat_${currentGroup.id}_${category}`;
+
+    // 1. Look for assignments of this category in this specific period
+    const catPeriodAsgs = groupAssignments.filter(
+      (a) => a.category === category && a.periodIndex === periodIdx
+    );
+
+    if (catPeriodAsgs.length > 0) {
+      let sum = 0;
+      let count = 0;
+      for (const asg of catPeriodAsgs) {
+        if (studentScores[asg.id] !== undefined) {
+          sum += studentScores[asg.id];
+          count++;
+        }
+      }
+      if (count > 0) {
+        return Math.round((sum / count) * 10) / 10;
+      }
+    }
+
+    // 2. Direct period score
+    if (studentScores[periodSpecificKey] !== undefined) {
+      return studentScores[periodSpecificKey];
+    }
+
+    // 3. Fallback to general category score
+    if (studentScores[generalKey] !== undefined) {
+      return studentScores[generalKey];
+    }
+
+    // 4. Fallback default
+    return 10.0;
+  };
+
   // Save direct score for a criterion (Exámenes, Proyectos, Autoevaluación, etc.)
   const handleSaveCriterionScore = (
     studentId: string,
     category: 'homework' | 'exams' | 'attendance' | 'participation' | 'projects' | 'selfEval',
-    valStr: string
+    valStr: string,
+    periodIdx?: number
   ) => {
     const parsed = parseFloat(valStr);
     if (isNaN(parsed) || parsed < 0 || parsed > 10) {
@@ -98,6 +147,8 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
       return;
     }
     const cleanScore = Math.round(parsed * 10) / 10;
+    const pIdx = periodIdx || (typeof selectedPeriodView === 'number' ? selectedPeriodView : 1);
+    const periodKey = `cat_${currentGroup.id}_p${pIdx}_${category}`;
     const directKey = `cat_${currentGroup.id}_${category}`;
 
     const categoryNames: Record<string, string> = {
@@ -109,22 +160,22 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
       selfEval: 'Autoevaluación',
     };
 
-    let targetAssignmentId = directKey;
+    const asgId = `asg_${currentGroup.id}_p${pIdx}_${category}`;
+
     if (setAssignments) {
       setAssignments((prev) => {
         const existing = prev.find(
-          (a) => (a.groupId === currentGroup.id || !a.groupId) && a.category === category
+          (a) => a.groupId === currentGroup.id && a.category === category && a.periodIndex === pIdx
         );
         if (existing) {
-          targetAssignmentId = existing.id;
           return prev;
         }
         const newAsg: AssignmentGrade = {
-          id: directKey,
+          id: asgId,
           groupId: currentGroup.id,
-          name: categoryNames[category] || category,
+          name: `${categoryNames[category] || category} (${getPeriodName(pIdx)})`,
           category,
-          periodIndex: 1,
+          periodIndex: pIdx,
           maxScore: 10,
         };
         return [...prev, newAsg];
@@ -134,8 +185,9 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
     if (setScores) {
       setScores((prev) => {
         const studentMap = { ...(prev[studentId] || {}) };
+        studentMap[periodKey] = cleanScore;
+        studentMap[asgId] = cleanScore;
         studentMap[directKey] = cleanScore;
-        studentMap[targetAssignmentId] = cleanScore;
         return {
           ...prev,
           [studentId]: studentMap,
@@ -148,40 +200,14 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
     setEditingCell(null);
   };
 
-  // Calculate student average for a specific period
+  // Calculate student average for a specific period (6 criteria weighted)
   const calculatePeriodAverage = (studentId: string, periodIdx: number) => {
-    const studentScores = scores[studentId] || {};
-    const periodAssignments = groupAssignments.filter(a => a.periodIndex === periodIdx);
-
-    const getCatPeriodAvg = (category: 'homework' | 'exams' | 'attendance' | 'participation' | 'projects' | 'selfEval') => {
-      const directKey = `cat_${currentGroup.id}_${category}`;
-      const catAsgs = periodAssignments.filter(a => a.category === category);
-      if (catAsgs.length === 0) {
-        if (studentScores[directKey] !== undefined) {
-          return studentScores[directKey];
-        }
-        return 10.0;
-      }
-      let sum = 0;
-      let count = 0;
-      for (const a of catAsgs) {
-        if (studentScores[a.id] !== undefined) {
-          sum += studentScores[a.id];
-          count++;
-        }
-      }
-      if (count === 0 && studentScores[directKey] !== undefined) {
-        return studentScores[directKey];
-      }
-      return count > 0 ? sum / count : 10.0;
-    };
-
-    const hw = getCatPeriodAvg('homework');
-    const exam = getCatPeriodAvg('exams');
-    const att = getCatPeriodAvg('attendance');
-    const part = getCatPeriodAvg('participation');
-    const proj = getCatPeriodAvg('projects');
-    const self = getCatPeriodAvg('selfEval');
+    const hw = calculatePeriodCriterionAvg(studentId, periodIdx, 'homework');
+    const exam = calculatePeriodCriterionAvg(studentId, periodIdx, 'exams');
+    const att = calculatePeriodCriterionAvg(studentId, periodIdx, 'attendance');
+    const part = calculatePeriodCriterionAvg(studentId, periodIdx, 'participation');
+    const proj = calculatePeriodCriterionAvg(studentId, periodIdx, 'projects');
+    const self = calculatePeriodCriterionAvg(studentId, periodIdx, 'selfEval');
 
     const weighted = (
       (hw * weights.homework) +
@@ -575,121 +601,385 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
 
       {/* Sábana de Calificaciones Table */}
       <div className="bg-surface-container-lowest rounded-xl shadow-xs border border-[#E2E8F0] overflow-hidden flex flex-col">
-        {/* Table Subtitle Banner */}
-        <div className="p-space-sm bg-surface-container-low border-b border-[#E2E8F0] flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-2">
+        {/* Table Subtitle Banner & Period View Tabs */}
+        <div className="p-space-sm bg-surface-container-low border-b border-[#E2E8F0] flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="material-symbols-outlined text-secondary text-base">table_chart</span>
-            <span className="text-on-surface font-bold">Sábana Oficial de Evaluación Consolidada</span>
+            <span className="text-on-surface font-bold">
+              {selectedPeriodView === 'all'
+                ? 'Sábana Oficial de Evaluación Consolidada'
+                : `Desglose de Calificaciones - ${getPeriodName(selectedPeriodView)}`}
+            </span>
             <span className="text-[11px] text-on-surface-variant font-mono-numeric">({filteredStudents.length} alumnos listados)</span>
           </div>
-          <div className="flex items-center gap-3 text-[11px] font-semibold text-on-surface-variant flex-wrap">
-            <span>Ponderación Criterios (6 Totales):</span>
-            <span className="font-mono-numeric text-primary">Trabajos {weights.homework}%</span>
-            <span>•</span>
-            <span className="font-mono-numeric text-primary">Examen {weights.exams}%</span>
-            <span>•</span>
-            <span className="font-mono-numeric text-primary">Asistencia {weights.attendance}%</span>
-            <span>•</span>
-            <span className="font-mono-numeric text-primary">Part. {weights.participation}%</span>
-            <span>•</span>
-            <span className="font-mono-numeric text-indigo-700 font-bold bg-indigo-50 px-1 rounded">Proyectos {weights.projects || 0}%</span>
-            <span>•</span>
-            <span className="font-mono-numeric text-primary">Auto. {weights.selfEval}%</span>
+
+          {/* Period Tabs Selector */}
+          <div className="flex items-center gap-1.5 bg-surface-container-high/60 p-1 rounded-xl border border-[#CBD5E1] flex-wrap">
+            <span className="text-[10px] font-bold text-on-surface-variant px-1.5 uppercase tracking-wider">
+              Vista:
+            </span>
+            <button
+              onClick={() => setSelectedPeriodView('all')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                selectedPeriodView === 'all'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+              }`}
+            >
+              Sábana Concentrada (Todos)
+            </button>
+            {Array.from({ length: numPeriods }, (_, i) => i + 1).map((pIdx) => (
+              <button
+                key={pIdx}
+                onClick={() => setSelectedPeriodView(pIdx)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  selectedPeriodView === pIdx
+                    ? 'bg-secondary text-white shadow-xs'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                }`}
+              >
+                {getPeriodName(pIdx)}
+              </button>
+            ))}
           </div>
+        </div>
+
+        {/* Weights Summary Bar */}
+        <div className="px-4 py-2 bg-surface-container-high/30 border-b border-[#E2E8F0] flex items-center justify-between text-[11px] font-semibold text-on-surface-variant flex-wrap gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-slate-500">Ponderación oficial:</span>
+            <span className="font-mono-numeric text-primary bg-primary/10 px-1.5 py-0.5 rounded">Tareas {weights.homework}%</span>
+            <span className="font-mono-numeric text-primary bg-primary/10 px-1.5 py-0.5 rounded">Examen {weights.exams}%</span>
+            <span className="font-mono-numeric text-primary bg-primary/10 px-1.5 py-0.5 rounded">Asistencia {weights.attendance}%</span>
+            <span className="font-mono-numeric text-primary bg-primary/10 px-1.5 py-0.5 rounded">Part. {weights.participation}%</span>
+            <span className="font-mono-numeric text-indigo-700 bg-indigo-100 font-bold px-1.5 py-0.5 rounded">Proyectos {weights.projects || 0}%</span>
+            <span className="font-mono-numeric text-primary bg-primary/10 px-1.5 py-0.5 rounded">Auto. {weights.selfEval}%</span>
+          </div>
+          {typeof selectedPeriodView === 'number' && (
+            <div className="text-secondary font-bold flex items-center gap-1">
+              <span className="material-symbols-outlined text-xs">info</span>
+              <span>Calculando tareas, proyectos y asistencia correspondientes al {getPeriodName(selectedPeriodView)}</span>
+            </div>
+          )}
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-xs">
             <thead>
-              {/* Top grouping row */}
-              <tr className="bg-surface-container-high/40 border-b border-[#CBD5E1] text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
-                <th colSpan={2} className="py-2 px-3 border-r border-[#CBD5E1] text-left">
-                  Datos del Alumno
-                </th>
-                <th colSpan={numPeriods} className="py-2 px-3 border-r border-[#CBD5E1] text-center bg-secondary/5 text-secondary">
-                  Cortes Evaluativos ({structure.toUpperCase()})
-                </th>
-                <th colSpan={6} className="py-2 px-3 border-r border-[#CBD5E1] text-center bg-primary/5 text-primary">
-                  Desglose Acumulado por Criterios de Evaluación (6 Criterios)
-                </th>
-                <th colSpan={3} className="py-2 px-3 text-center bg-surface-container-low">
-                  Dictamen Final
-                </th>
-              </tr>
+              {selectedPeriodView === 'all' ? (
+                <>
+                  {/* Top grouping row - Consolidated */}
+                  <tr className="bg-surface-container-high/40 border-b border-[#CBD5E1] text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
+                    <th colSpan={2} className="py-2 px-3 border-r border-[#CBD5E1] text-left">
+                      Datos del Alumno
+                    </th>
+                    <th colSpan={numPeriods} className="py-2 px-3 border-r border-[#CBD5E1] text-center bg-secondary/5 text-secondary">
+                      Cortes Evaluativos ({structure.toUpperCase()})
+                    </th>
+                    <th colSpan={6} className="py-2 px-3 border-r border-[#CBD5E1] text-center bg-primary/5 text-primary">
+                      Desglose Acumulado por Criterios de Evaluación (6 Criterios)
+                    </th>
+                    <th colSpan={3} className="py-2 px-3 text-center bg-surface-container-low">
+                      Dictamen Final
+                    </th>
+                  </tr>
 
-              {/* Sub headers */}
-              <tr className="bg-surface-container-high/80 border-b border-[#CBD5E1] text-on-surface-variant text-[11px] uppercase tracking-wider font-semibold">
-                <th className="py-2 px-3 sticky left-0 bg-surface-container-high/95 z-20 w-28 border-r border-[#CBD5E1]">
-                  Matrícula
-                </th>
-                <th className="py-2 px-3 sticky left-28 bg-surface-container-high/95 z-20 min-w-56 border-r border-[#CBD5E1]">
-                  Estudiante
-                </th>
+                  {/* Sub headers - Consolidated */}
+                  <tr className="bg-surface-container-high/80 border-b border-[#CBD5E1] text-on-surface-variant text-[11px] uppercase tracking-wider font-semibold">
+                    <th className="py-2 px-3 sticky left-0 bg-surface-container-high/95 z-20 w-28 border-r border-[#CBD5E1]">
+                      Matrícula
+                    </th>
+                    <th className="py-2 px-3 sticky left-28 bg-surface-container-high/95 z-20 min-w-56 border-r border-[#CBD5E1]">
+                      Estudiante
+                    </th>
 
-                {/* Period Columns */}
-                {Array.from({ length: numPeriods }, (_, i) => i + 1).map((idx) => (
-                  <th key={idx} className="py-2 px-3 text-center min-w-28 border-r border-[#CBD5E1] bg-secondary/5">
-                    <div className="flex flex-col items-center">
-                      <span className="font-bold text-on-surface">{getPeriodName(idx)}</span>
-                      <span className="text-[10px] text-secondary font-mono-numeric">Prom. Corte</span>
-                    </div>
-                  </th>
-                ))}
+                    {/* Period Columns */}
+                    {Array.from({ length: numPeriods }, (_, i) => i + 1).map((idx) => (
+                      <th key={idx} className="py-2 px-3 text-center min-w-28 border-r border-[#CBD5E1] bg-secondary/5">
+                        <div className="flex flex-col items-center">
+                          <span className="font-bold text-on-surface">{getPeriodName(idx)}</span>
+                          <span className="text-[10px] text-secondary font-mono-numeric">Prom. Corte</span>
+                        </div>
+                      </th>
+                    ))}
 
-                {/* Criteria Columns */}
-                <th className="py-2 px-3 text-center min-w-24 border-r border-[#CBD5E1] bg-primary/5">
-                  <span className="font-bold text-on-surface">Trabajos</span>
-                  <div className="text-[10px] text-primary font-mono-numeric">({weights.homework}%)</div>
-                </th>
-                <th className="py-2 px-3 text-center min-w-24 border-r border-[#CBD5E1] bg-primary/5">
-                  <span className="font-bold text-on-surface">Exámenes</span>
-                  <div className="text-[10px] text-primary font-mono-numeric">({weights.exams}%)</div>
-                </th>
-                <th className="py-2 px-3 text-center min-w-24 border-r border-[#CBD5E1] bg-primary/5">
-                  <span className="font-bold text-on-surface">Asistencia</span>
-                  <div className="text-[10px] text-primary font-mono-numeric">({weights.attendance}%)</div>
-                </th>
-                <th className="py-2 px-3 text-center min-w-24 border-r border-[#CBD5E1] bg-primary/5">
-                  <span className="font-bold text-on-surface">Part.</span>
-                  <div className="text-[10px] text-primary font-mono-numeric">({weights.participation}%)</div>
-                </th>
-                <th className="py-2 px-3 text-center min-w-24 border-r border-[#CBD5E1] bg-indigo-50/70">
-                  <span className="font-bold text-indigo-950">Proyectos</span>
-                  <div className="text-[10px] text-indigo-700 font-mono-numeric">({weights.projects || 0}%)</div>
-                </th>
-                <th className="py-2 px-3 text-center min-w-24 border-r border-[#CBD5E1] bg-primary/5">
-                  <span className="font-bold text-on-surface">Auto.</span>
-                  <div className="text-[10px] text-primary font-mono-numeric">({weights.selfEval}%)</div>
-                </th>
+                    {/* Criteria Columns */}
+                    <th className="py-2 px-3 text-center min-w-24 border-r border-[#CBD5E1] bg-primary/5">
+                      <span className="font-bold text-on-surface">Trabajos</span>
+                      <div className="text-[10px] text-primary font-mono-numeric">({weights.homework}%)</div>
+                    </th>
+                    <th className="py-2 px-3 text-center min-w-24 border-r border-[#CBD5E1] bg-primary/5">
+                      <span className="font-bold text-on-surface">Exámenes</span>
+                      <div className="text-[10px] text-primary font-mono-numeric">({weights.exams}%)</div>
+                    </th>
+                    <th className="py-2 px-3 text-center min-w-24 border-r border-[#CBD5E1] bg-primary/5">
+                      <span className="font-bold text-on-surface">Asistencia</span>
+                      <div className="text-[10px] text-primary font-mono-numeric">({weights.attendance}%)</div>
+                    </th>
+                    <th className="py-2 px-3 text-center min-w-24 border-r border-[#CBD5E1] bg-primary/5">
+                      <span className="font-bold text-on-surface">Part.</span>
+                      <div className="text-[10px] text-primary font-mono-numeric">({weights.participation}%)</div>
+                    </th>
+                    <th className="py-2 px-3 text-center min-w-24 border-r border-[#CBD5E1] bg-indigo-50/70">
+                      <span className="font-bold text-indigo-950">Proyectos</span>
+                      <div className="text-[10px] text-indigo-700 font-mono-numeric">({weights.projects || 0}%)</div>
+                    </th>
+                    <th className="py-2 px-3 text-center min-w-24 border-r border-[#CBD5E1] bg-primary/5">
+                      <span className="font-bold text-on-surface">Auto.</span>
+                      <div className="text-[10px] text-primary font-mono-numeric">({weights.selfEval}%)</div>
+                    </th>
 
-                {/* Final Grade */}
-                <th className="py-2 px-3 text-center font-bold text-primary min-w-28 border-r border-[#CBD5E1] bg-surface-container-low">
-                  Promedio Final
-                </th>
-                {/* Status */}
-                <th className="py-2 px-3 text-center font-bold text-on-surface min-w-32 border-r border-[#CBD5E1]">
-                  Estatus
-                </th>
-                {/* Actions */}
-                <th className="py-2 px-3 text-center font-bold text-on-surface min-w-28">
-                  Boleta
-                </th>
-              </tr>
+                    {/* Final Grade */}
+                    <th className="py-2 px-3 text-center font-bold text-primary min-w-28 border-r border-[#CBD5E1] bg-surface-container-low">
+                      Promedio Final
+                    </th>
+                    {/* Status */}
+                    <th className="py-2 px-3 text-center font-bold text-on-surface min-w-32 border-r border-[#CBD5E1]">
+                      Estatus
+                    </th>
+                    {/* Actions */}
+                    <th className="py-2 px-3 text-center font-bold text-on-surface min-w-28">
+                      Boleta
+                    </th>
+                  </tr>
+                </>
+              ) : (
+                <>
+                  {/* Top grouping row - Period Specific */}
+                  <tr className="bg-surface-container-high/40 border-b border-[#CBD5E1] text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
+                    <th colSpan={2} className="py-2 px-3 border-r border-[#CBD5E1] text-left">
+                      Datos del Alumno
+                    </th>
+                    <th colSpan={6} className="py-2 px-3 border-r border-[#CBD5E1] text-center bg-secondary/10 text-secondary">
+                      Evaluación de Criterios del {getPeriodName(selectedPeriodView)}
+                    </th>
+                    <th colSpan={3} className="py-2 px-3 text-center bg-surface-container-low">
+                      Resultado del {getPeriodName(selectedPeriodView)}
+                    </th>
+                  </tr>
+
+                  {/* Sub headers - Period Specific */}
+                  <tr className="bg-surface-container-high/80 border-b border-[#CBD5E1] text-on-surface-variant text-[11px] uppercase tracking-wider font-semibold">
+                    <th className="py-2 px-3 sticky left-0 bg-surface-container-high/95 z-20 w-28 border-r border-[#CBD5E1]">
+                      Matrícula
+                    </th>
+                    <th className="py-2 px-3 sticky left-28 bg-surface-container-high/95 z-20 min-w-56 border-r border-[#CBD5E1]">
+                      Estudiante
+                    </th>
+
+                    {/* Criteria Columns for Selected Period */}
+                    <th className="py-2 px-3 text-center min-w-24 border-r border-[#CBD5E1] bg-primary/5">
+                      <span className="font-bold text-on-surface">Tareas P{selectedPeriodView}</span>
+                      <div className="text-[10px] text-primary font-mono-numeric">({weights.homework}%)</div>
+                    </th>
+                    <th className="py-2 px-3 text-center min-w-24 border-r border-[#CBD5E1] bg-primary/5">
+                      <span className="font-bold text-on-surface">Examen P{selectedPeriodView}</span>
+                      <div className="text-[10px] text-primary font-mono-numeric">({weights.exams}%)</div>
+                    </th>
+                    <th className="py-2 px-3 text-center min-w-24 border-r border-[#CBD5E1] bg-primary/5">
+                      <span className="font-bold text-on-surface">Asistencia P{selectedPeriodView}</span>
+                      <div className="text-[10px] text-primary font-mono-numeric">({weights.attendance}%)</div>
+                    </th>
+                    <th className="py-2 px-3 text-center min-w-24 border-r border-[#CBD5E1] bg-primary/5">
+                      <span className="font-bold text-on-surface">Part. P{selectedPeriodView}</span>
+                      <div className="text-[10px] text-primary font-mono-numeric">({weights.participation}%)</div>
+                    </th>
+                    <th className="py-2 px-3 text-center min-w-24 border-r border-[#CBD5E1] bg-indigo-50/70">
+                      <span className="font-bold text-indigo-950">Proyectos P{selectedPeriodView}</span>
+                      <div className="text-[10px] text-indigo-700 font-mono-numeric">({weights.projects || 0}%)</div>
+                    </th>
+                    <th className="py-2 px-3 text-center min-w-24 border-r border-[#CBD5E1] bg-primary/5">
+                      <span className="font-bold text-on-surface">Auto. P{selectedPeriodView}</span>
+                      <div className="text-[10px] text-primary font-mono-numeric">({weights.selfEval}%)</div>
+                    </th>
+
+                    {/* Period Average */}
+                    <th className="py-2 px-3 text-center font-bold text-secondary min-w-28 border-r border-[#CBD5E1] bg-secondary/10">
+                      Promedio {getPeriodName(selectedPeriodView)}
+                    </th>
+                    {/* Status */}
+                    <th className="py-2 px-3 text-center font-bold text-on-surface min-w-32 border-r border-[#CBD5E1]">
+                      Estatus Corte
+                    </th>
+                    {/* Actions */}
+                    <th className="py-2 px-3 text-center font-bold text-on-surface min-w-28">
+                      Boleta
+                    </th>
+                  </tr>
+                </>
+              )}
             </thead>
 
             <tbody className="divide-y divide-[#F1F5F9]">
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={11 + numPeriods} className="text-center py-10 text-on-surface-variant text-xs">
+                  <td colSpan={14} className="text-center py-10 text-on-surface-variant text-xs">
                     No se encontraron alumnos con los criterios de búsqueda seleccionados.
                   </td>
                 </tr>
               ) : (
                 filteredStudents.map((student, idx) => {
                   const finalGrade = calculateFinalGrade(student.id);
-                  const status = getStudentStatus(finalGrade);
                   const isPassing = finalGrade >= criteria.minPassingGrade;
                   const isRisk = !isPassing && finalGrade >= 6.0;
+
+                  if (selectedPeriodView === 'all') {
+                    const status = getStudentStatus(finalGrade);
+                    return (
+                      <tr
+                        key={student.id}
+                        className={`hover:bg-surface-container-low/50 transition-colors ${
+                          idx % 2 === 1 ? 'bg-surface-container-low/20' : ''
+                        }`}
+                      >
+                        {/* Matrícula */}
+                        <td className="py-2.5 px-3 sticky left-0 bg-surface-container-lowest z-10 font-mono-numeric font-semibold text-xs text-on-surface border-r border-[#E2E8F0]">
+                          {student.matricula}
+                        </td>
+
+                        {/* Estudiante */}
+                        <td className="py-2.5 px-3 sticky left-28 bg-surface-container-lowest z-10 border-r border-[#E2E8F0]">
+                          <div className="flex items-center gap-2.5">
+                            {student.avatarUrl ? (
+                              <img
+                                src={student.avatarUrl}
+                                alt={student.name}
+                                className="w-7 h-7 rounded-full object-cover shrink-0 ring-1 ring-[#E2E8F0]"
+                              />
+                            ) : (
+                              <div className="w-7 h-7 rounded-full bg-surface-container-high text-primary flex items-center justify-center font-mono-numeric text-[10px] font-bold shrink-0">
+                                {student.initials || student.name.substring(0, 2).toUpperCase()}
+                              </div>
+                            )}
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-xs text-on-surface truncate">{student.name}</span>
+                              <span className="text-[10px] text-on-surface-variant truncate">{student.email}</span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Period Scores */}
+                        {Array.from({ length: numPeriods }, (_, i) => i + 1).map((pIdx) => {
+                          const pScore = calculatePeriodAverage(student.id, pIdx);
+                          const pPassing = pScore >= criteria.minPassingGrade;
+                          return (
+                            <td
+                              key={pIdx}
+                              className="py-2.5 px-3 text-center border-r border-[#E2E8F0] font-mono-numeric text-xs font-semibold"
+                            >
+                              <span
+                                className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${
+                                  pPassing
+                                    ? 'text-primary bg-primary/5'
+                                    : pScore >= 6.0
+                                    ? 'text-[#92400E] bg-[#FFFBEB]'
+                                    : 'text-[#991B1B] bg-[#FEF2F2]'
+                                }`}
+                              >
+                                {pScore.toFixed(1)}
+                              </span>
+                            </td>
+                          );
+                        })}
+
+                        {/* Criteria Scores (Click to edit directly) */}
+                        {(
+                          [
+                            { key: 'homework', label: 'Tareas', isProj: false },
+                            { key: 'exams', label: 'Examen', isProj: false },
+                            { key: 'attendance', label: 'Asistencia', isProj: false },
+                            { key: 'participation', label: 'Participación', isProj: false },
+                            { key: 'projects', label: 'Proyectos', isProj: true },
+                            { key: 'selfEval', label: 'Autoevaluación', isProj: false },
+                          ] as const
+                        ).map(({ key: cat, label, isProj }) => {
+                          const isEditing = editingCell?.studentId === student.id && editingCell?.category === cat && !editingCell?.periodIdx;
+                          const scoreVal = calculateCriterionCumulative(student.id, cat);
+
+                          return (
+                            <td
+                              key={cat}
+                              onClick={() => {
+                                if (!isEditing) {
+                                  setEditingCell({ studentId: student.id, category: cat });
+                                  setEditValue(String(scoreVal));
+                                }
+                              }}
+                              className={`py-2 px-2 text-center border-r border-[#E2E8F0] font-mono-numeric text-xs transition-colors cursor-pointer group hover:bg-primary/10 relative ${
+                                isProj ? 'bg-indigo-50/30 font-bold text-indigo-950' : 'text-on-surface'
+                              }`}
+                              title={`Clic para capturar o editar ${label} (Enter para guardar)`}
+                            >
+                              {isEditing ? (
+                                <input
+                                  autoFocus
+                                  type="number"
+                                  step="0.1"
+                                  min="0"
+                                  max="10"
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  onBlur={() => handleSaveCriterionScore(student.id, cat, editValue)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleSaveCriterionScore(student.id, cat, editValue);
+                                    if (e.key === 'Escape') setEditingCell(null);
+                                  }}
+                                  className="w-16 h-7 text-center font-mono-numeric text-xs font-bold text-primary bg-white border-2 border-secondary rounded shadow-sm focus:outline-none"
+                                />
+                              ) : (
+                                <div className="flex items-center justify-center gap-1">
+                                  <span>{scoreVal.toFixed(1)}</span>
+                                  <span className="material-symbols-outlined text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    edit
+                                  </span>
+                                </div>
+                              )}
+                            </td>
+                          );
+                        })}
+
+                        {/* Promedio Final */}
+                        <td className="py-2.5 px-3 text-center font-mono-numeric text-sm font-extrabold border-r border-[#E2E8F0] bg-surface-container-low/40">
+                          <span
+                            className={
+                              isPassing ? 'text-primary' : isRisk ? 'text-[#92400E]' : 'text-[#991B1B]'
+                            }
+                          >
+                            {finalGrade.toFixed(1)}
+                          </span>
+                        </td>
+
+                        {/* Status */}
+                        <td className="py-2.5 px-3 text-center border-r border-[#E2E8F0]">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${status.badgeClass}`}
+                          >
+                            {status.label}
+                          </span>
+                        </td>
+
+                        {/* Action: Ver Boleta */}
+                        <td className="py-2.5 px-3 text-center">
+                          <button
+                            onClick={() => {
+                              setSelectedStudentForBoleta(student);
+                              setEditingNote(teacherNotes[student.id] || '');
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface-container-low hover:bg-primary hover:text-white text-primary border border-primary/20 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                            title="Ver boleta oficial de calificaciones"
+                          >
+                            <span className="material-symbols-outlined text-sm">visibility</span>
+                            <span>Boleta</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  }
+
+                  // Selected Period View
+                  const pIdx = selectedPeriodView;
+                  const pScore = calculatePeriodAverage(student.id, pIdx);
+                  const pStatus = getStudentStatus(pScore);
 
                   return (
                     <tr
@@ -724,55 +1014,31 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
                         </div>
                       </td>
 
-                      {/* Period Scores */}
-                      {Array.from({ length: numPeriods }, (_, i) => i + 1).map((pIdx) => {
-                        const pScore = calculatePeriodAverage(student.id, pIdx);
-                        const pPassing = pScore >= criteria.minPassingGrade;
-                        return (
-                          <td
-                            key={pIdx}
-                            className="py-2.5 px-3 text-center border-r border-[#E2E8F0] font-mono-numeric text-xs font-semibold"
-                          >
-                            <span
-                              className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${
-                                pPassing
-                                  ? 'text-primary bg-primary/5'
-                                  : pScore >= 6.0
-                                  ? 'text-[#92400E] bg-[#FFFBEB]'
-                                  : 'text-[#991B1B] bg-[#FEF2F2]'
-                              }`}
-                            >
-                              {pScore.toFixed(1)}
-                            </span>
-                          </td>
-                        );
-                      })}
-
-                      {/* Criteria Scores (Click to edit directly) */}
+                      {/* 6 Criteria for this specific period */}
                       {(
                         [
-                          { key: 'homework', label: 'Tareas', isProj: false },
-                          { key: 'exams', label: 'Examen', isProj: false },
-                          { key: 'attendance', label: 'Asistencia', isProj: false },
-                          { key: 'participation', label: 'Participación', isProj: false },
-                          { key: 'projects', label: 'Proyectos', isProj: true },
-                          { key: 'selfEval', label: 'Autoevaluación', isProj: false },
+                          { key: 'homework', label: `Tareas P${pIdx}`, isProj: false },
+                          { key: 'exams', label: `Examen P${pIdx}`, isProj: false },
+                          { key: 'attendance', label: `Asistencia P${pIdx}`, isProj: false },
+                          { key: 'participation', label: `Part. P${pIdx}`, isProj: false },
+                          { key: 'projects', label: `Proyectos P${pIdx}`, isProj: true },
+                          { key: 'selfEval', label: `Auto. P${pIdx}`, isProj: false },
                         ] as const
                       ).map(({ key: cat, label, isProj }) => {
-                        const isEditing = editingCell?.studentId === student.id && editingCell?.category === cat;
-                        const scoreVal = calculateCriterionCumulative(student.id, cat);
+                        const isEditing = editingCell?.studentId === student.id && editingCell?.category === cat && editingCell?.periodIdx === pIdx;
+                        const scoreVal = calculatePeriodCriterionAvg(student.id, pIdx, cat);
 
                         return (
                           <td
                             key={cat}
                             onClick={() => {
                               if (!isEditing) {
-                                setEditingCell({ studentId: student.id, category: cat });
+                                setEditingCell({ studentId: student.id, category: cat, periodIdx: pIdx });
                                 setEditValue(String(scoreVal));
                               }
                             }}
-                            className={`py-2 px-2 text-center border-r border-[#E2E8F0] font-mono-numeric text-xs transition-colors cursor-pointer group hover:bg-primary/10 relative ${
-                              isProj ? 'bg-indigo-50/30 font-bold text-indigo-950' : 'text-on-surface'
+                            className={`py-2 px-2 text-center border-r border-[#E2E8F0] font-mono-numeric text-xs transition-colors cursor-pointer group hover:bg-secondary/15 relative ${
+                              isProj ? 'bg-indigo-50/40 font-bold text-indigo-950' : 'text-on-surface'
                             }`}
                             title={`Clic para capturar o editar ${label} (Enter para guardar)`}
                           >
@@ -785,16 +1051,16 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
                                 max="10"
                                 value={editValue}
                                 onChange={(e) => setEditValue(e.target.value)}
-                                onBlur={() => handleSaveCriterionScore(student.id, cat, editValue)}
+                                onBlur={() => handleSaveCriterionScore(student.id, cat, editValue, pIdx)}
                                 onKeyDown={(e) => {
-                                  if (e.key === 'Enter') handleSaveCriterionScore(student.id, cat, editValue);
+                                  if (e.key === 'Enter') handleSaveCriterionScore(student.id, cat, editValue, pIdx);
                                   if (e.key === 'Escape') setEditingCell(null);
                                 }}
-                                className="w-16 h-7 text-center font-mono-numeric text-xs font-bold text-primary bg-white border-2 border-secondary rounded shadow-sm focus:outline-none"
+                                className="w-16 h-7 text-center font-mono-numeric text-xs font-bold text-secondary bg-white border-2 border-secondary rounded shadow-sm focus:outline-none"
                               />
                             ) : (
                               <div className="flex items-center justify-center gap-1">
-                                <span>{scoreVal.toFixed(1)}</span>
+                                <span className={scoreVal < 6.0 ? 'text-[#991B1B] font-bold' : ''}>{scoreVal.toFixed(1)}</span>
                                 <span className="material-symbols-outlined text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">
                                   edit
                                 </span>
@@ -804,23 +1070,17 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
                         );
                       })}
 
-                      {/* Promedio Final */}
-                      <td className="py-2.5 px-3 text-center font-mono-numeric text-sm font-extrabold border-r border-[#E2E8F0] bg-surface-container-low/40">
-                        <span
-                          className={
-                            isPassing ? 'text-primary' : isRisk ? 'text-[#92400E]' : 'text-[#991B1B]'
-                          }
-                        >
-                          {finalGrade.toFixed(1)}
-                        </span>
+                      {/* Period Average */}
+                      <td className="py-2.5 px-3 text-center font-mono-numeric text-sm font-extrabold border-r border-[#E2E8F0] bg-secondary/10 text-secondary">
+                        {pScore.toFixed(1)}
                       </td>
 
                       {/* Status */}
                       <td className="py-2.5 px-3 text-center border-r border-[#E2E8F0]">
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${status.badgeClass}`}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${pStatus.badgeClass}`}
                         >
-                          {status.label}
+                          {pStatus.label}
                         </span>
                       </td>
 
@@ -969,22 +1229,22 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
                         <tr key={pIdx} className="hover:bg-surface-container-low/30">
                           <td className="py-2 px-3 font-bold text-on-surface">{getPeriodName(pIdx)}</td>
                           <td className="py-2 px-3 text-center font-mono-numeric">
-                            {calculateCriterionCumulative(selectedStudentForBoleta.id, 'homework').toFixed(1)}
+                            {calculatePeriodCriterionAvg(selectedStudentForBoleta.id, pIdx, 'homework').toFixed(1)}
                           </td>
                           <td className="py-2 px-3 text-center font-mono-numeric">
-                            {calculateCriterionCumulative(selectedStudentForBoleta.id, 'exams').toFixed(1)}
+                            {calculatePeriodCriterionAvg(selectedStudentForBoleta.id, pIdx, 'exams').toFixed(1)}
                           </td>
                           <td className="py-2 px-3 text-center font-mono-numeric">
-                            {calculateCriterionCumulative(selectedStudentForBoleta.id, 'attendance').toFixed(1)}
+                            {calculatePeriodCriterionAvg(selectedStudentForBoleta.id, pIdx, 'attendance').toFixed(1)}
                           </td>
                           <td className="py-2 px-3 text-center font-mono-numeric">
-                            {calculateCriterionCumulative(selectedStudentForBoleta.id, 'participation').toFixed(1)}
+                            {calculatePeriodCriterionAvg(selectedStudentForBoleta.id, pIdx, 'participation').toFixed(1)}
                           </td>
                           <td className="py-2 px-3 text-center font-mono-numeric font-bold text-indigo-900 bg-indigo-50/20">
-                            {calculateCriterionCumulative(selectedStudentForBoleta.id, 'projects').toFixed(1)}
+                            {calculatePeriodCriterionAvg(selectedStudentForBoleta.id, pIdx, 'projects').toFixed(1)}
                           </td>
                           <td className="py-2 px-3 text-center font-mono-numeric">
-                            {calculateCriterionCumulative(selectedStudentForBoleta.id, 'selfEval').toFixed(1)}
+                            {calculatePeriodCriterionAvg(selectedStudentForBoleta.id, pIdx, 'selfEval').toFixed(1)}
                           </td>
                           <td className="py-2 px-3 text-center font-bold font-mono-numeric text-primary bg-primary/5">
                             {pAvg.toFixed(1)}
