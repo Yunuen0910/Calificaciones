@@ -1010,6 +1010,7 @@ export default function App() {
               scores={scores}
               setScores={handleScoresChange}
               onNavigateToFinalGrades={() => setActiveTab('calificaciones-finales')}
+              onNavigateToAttendance={() => setActiveTab('asistencia')}
             />
           )}
 
