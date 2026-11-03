@@ -294,6 +294,59 @@ export async function deleteAssignmentsFromCloud(assignmentIds: string[]) {
   }
 }
 
+export async function wipeAllCloudAssignmentsForGroup(groupId?: string): Promise<number> {
+  try {
+    const asgSnap = await getDocs(collection(db, 'assignments'));
+    const toDelete: string[] = [];
+    asgSnap.forEach((docSnap) => {
+      const data = docSnap.data();
+      if (!groupId || data.groupId === groupId || !data.groupId) {
+        toDelete.push(docSnap.id);
+      }
+    });
+
+    const chunkSize = 400;
+    for (let i = 0; i < toDelete.length; i += chunkSize) {
+      const chunk = toDelete.slice(i, i + chunkSize);
+      const batch = writeBatch(db);
+      chunk.forEach((id) => {
+        batch.delete(doc(db, 'assignments', id));
+      });
+      await batch.commit();
+    }
+    console.log(`Wiped ${toDelete.length} assignments from cloud Firestore.`);
+    return toDelete.length;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, 'assignments/wipe-for-group');
+    return 0;
+  }
+}
+
+export async function wipeAllCloudAssignments(): Promise<number> {
+  try {
+    const asgSnap = await getDocs(collection(db, 'assignments'));
+    const toDelete: string[] = [];
+    asgSnap.forEach((docSnap) => {
+      toDelete.push(docSnap.id);
+    });
+
+    const chunkSize = 400;
+    for (let i = 0; i < toDelete.length; i += chunkSize) {
+      const chunk = toDelete.slice(i, i + chunkSize);
+      const batch = writeBatch(db);
+      chunk.forEach((id) => {
+        batch.delete(doc(db, 'assignments', id));
+      });
+      await batch.commit();
+    }
+    console.log(`Wiped all ${toDelete.length} assignments from cloud Firestore.`);
+    return toDelete.length;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, 'assignments/wipe-all');
+    return 0;
+  }
+}
+
 export async function syncAssignmentToCloud(assignment: AssignmentGrade) {
   try {
     await setDoc(doc(db, 'assignments', assignment.id), assignment);

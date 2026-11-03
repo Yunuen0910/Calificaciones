@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Group, AssignmentGrade } from '../types';
-import { deleteAssignmentFromCloud, deleteAssignmentsFromCloud } from '../firebase';
+import { deleteAssignmentFromCloud, deleteAssignmentsFromCloud, wipeAllCloudAssignmentsForGroup } from '../firebase';
 
 interface GradebookViewProps {
   groups: Group[];
@@ -58,6 +58,8 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
 
   const [showAddAssignmentModal, setShowAddAssignmentModal] = useState(false);
   const [showClearPeriodModal, setShowClearPeriodModal] = useState(false);
+  const [showWipeModal, setShowWipeModal] = useState(false);
+  const [isWiping, setIsWiping] = useState(false);
   const [assignmentToDelete, setAssignmentToDelete] = useState<AssignmentGrade | null>(null);
   const [assignmentToEdit, setAssignmentToEdit] = useState<AssignmentGrade | null>(null);
   const [newAsgName, setNewAsgName] = useState('');
@@ -103,8 +105,23 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
   const activePeriodIdx = typeof selectedPeriodFilter === 'number' ? selectedPeriodFilter : 1;
   const visibleAssignments = groupAssignments.filter((a) => {
     if (selectedPeriodFilter === 'all') return true;
-    return a.periodIndex === selectedPeriodFilter || !a.periodIndex;
+    return (a.periodIndex || 1) === selectedPeriodFilter;
   });
+
+  // Detect duplicate activities in current group (e.g. repeated names)
+  const duplicateAssignments = useMemo(() => {
+    const seen = new Set<string>();
+    const dupes: AssignmentGrade[] = [];
+    groupAssignments.forEach((a) => {
+      const key = `${(a.name || '').trim().toLowerCase()}___${a.category}___${a.periodIndex || 1}`;
+      if (seen.has(key)) {
+        dupes.push(a);
+      } else {
+        seen.add(key);
+      }
+    });
+    return dupes;
+  }, [groupAssignments]);
 
   // Calculate criterion average for a student in a specific period
   // (unites tasks of this period, or falls back to direct period score, or 10.0)
@@ -338,6 +355,55 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
     setShowClearPeriodModal(false);
     setToastFeedback(`Actividades ${label} eliminadas.`);
     setTimeout(() => setToastFeedback(null), 3000);
+  };
+
+  // Remove duplicate activities in current group
+  const handleRemoveDuplicates = async () => {
+    if (duplicateAssignments.length === 0) return;
+    const idsToRemove = duplicateAssignments.map((a) => a.id);
+    deleteAssignmentsFromCloud(idsToRemove);
+    const idsSet = new Set(idsToRemove);
+    setAssignments((prev) => prev.filter((a) => !idsSet.has(a.id)));
+    setScores((prev) => {
+      const next = { ...prev };
+      Object.keys(next).forEach((studentId) => {
+        if (next[studentId]) {
+          const copy = { ...next[studentId] };
+          idsSet.forEach((id) => delete copy[id]);
+          next[studentId] = copy;
+        }
+      });
+      return next;
+    });
+    setToastFeedback(`Se eliminaron ${idsToRemove.length} actividades duplicadas.`);
+    setTimeout(() => setToastFeedback(null), 3000);
+  };
+
+  // Permanently wipe all activities of this group in cloud Firestore
+  const handleExecuteWipeGroupAssignments = async () => {
+    setIsWiping(true);
+    const asgIdsToRemove = groupAssignments.map((a) => a.id);
+    // Delete in cloud
+    deleteAssignmentsFromCloud(asgIdsToRemove);
+    await wipeAllCloudAssignmentsForGroup(currentGroup.id);
+
+    const asgIdsSet = new Set(asgIdsToRemove);
+    setAssignments((prev) => prev.filter((a) => !asgIdsSet.has(a.id)));
+    setScores((prev) => {
+      const next = { ...prev };
+      Object.keys(next).forEach((studentId) => {
+        if (next[studentId]) {
+          const copy = { ...next[studentId] };
+          asgIdsSet.forEach((id) => delete copy[id]);
+          next[studentId] = copy;
+        }
+      });
+      return next;
+    });
+    setIsWiping(false);
+    setShowWipeModal(false);
+    setToastFeedback(`Se vaciaron todas las actividades de ${currentGroup.name} en la nube.`);
+    setTimeout(() => setToastFeedback(null), 3500);
   };
 
   // Generate suggested clean assignments covering all 6 evaluation criteria
@@ -623,15 +689,68 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
                 <span>+ 6 Criterios Base</span>
               </button>
             ) : (
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={handleClearPeriodAssignments}
+                  className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                  title="Borrar todas las actividades de este corte"
+                >
+                  <span className="material-symbols-outlined text-sm text-rose-600">delete_sweep</span>
+                  <span>Limpiar Corte ({visibleAssignments.length})</span>
+                </button>
+
+                {groupAssignments.length > 3 && (
+                  <button
+                    onClick={() => setShowWipeModal(true)}
+                    className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                    title="Vaciar permanentemente todas las actividades acumuladas de este grupo en la nube"
+                  >
+                    <span className="material-symbols-outlined text-sm">delete_forever</span>
+                    <span>Vaciar Nube ({groupAssignments.length})</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Alert banner if high activity count or duplicates detected */}
+      {(duplicateAssignments.length > 0 || groupAssignments.length > 8) && (
+        <div className="p-3 bg-amber-50/90 rounded-2xl border border-amber-300 mb-space-md flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-amber-950 shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <span className="material-symbols-outlined text-amber-600 text-xl shrink-0">inventory_2</span>
+            <div>
+              <span className="font-bold text-amber-900">
+                Se detectaron {groupAssignments.length} actividades en este grupo
+              </span>
+              {duplicateAssignments.length > 0 && (
+                <span className="text-amber-800 font-semibold ml-1">
+                  ({duplicateAssignments.length} repetidas/duplicadas).
+                </span>
+              )}
+              <p className="text-[11px] text-amber-800 mt-0.5">
+                Puedes eliminar las actividades repetidas con un clic o vaciar todo el historial de la nube para comenzar en limpio.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            {duplicateAssignments.length > 0 && (
               <button
-                onClick={handleClearPeriodAssignments}
-                className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
-                title="Borrar todas las actividades de este corte"
+                onClick={handleRemoveDuplicates}
+                className="px-3 py-1.5 bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold rounded-xl text-xs cursor-pointer transition-all shadow-2xs flex items-center gap-1"
               >
-                <span className="material-symbols-outlined text-sm text-rose-600">delete_sweep</span>
-                <span>Limpiar Corte</span>
+                <span className="material-symbols-outlined text-sm">cleaning_services</span>
+                <span>Eliminar {duplicateAssignments.length} Duplicadas</span>
               </button>
             )}
+            <button
+              onClick={() => setShowWipeModal(true)}
+              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs cursor-pointer shadow-xs transition-all flex items-center gap-1"
+            >
+              <span className="material-symbols-outlined text-sm">delete_forever</span>
+              <span>Vaciar Todo ({groupAssignments.length})</span>
+            </button>
           </div>
         </div>
       )}
@@ -672,10 +791,7 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
               {typeof selectedPeriodFilter === 'number' && viewSubMode === 'criteria_summary' && (
                 <>
                   <tr className="bg-slate-200 border-b border-[#CBD5E1] text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
-                    <th className="py-2 px-3 sticky left-0 bg-slate-200 z-30 w-32 border-r border-[#CBD5E1] text-left">
-                      Matrícula
-                    </th>
-                    <th className="py-2 px-3 sticky left-32 bg-slate-200 z-30 min-w-56 border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.1)] text-left">
+                    <th className="py-2.5 px-4 sticky left-0 bg-slate-200 z-30 w-64 min-w-[240px] max-w-[260px] border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.12)] text-left">
                       Estudiante
                     </th>
                     <th colSpan={6} className="py-2 px-3 border-r border-[#CBD5E1] text-center bg-secondary/10 text-secondary">
@@ -687,11 +803,8 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
                   </tr>
 
                   <tr className="bg-slate-100 border-b border-[#CBD5E1] text-on-surface-variant text-[11px] uppercase tracking-wider font-semibold">
-                    <th className="py-2.5 px-3 sticky left-0 bg-slate-100 z-20 w-32 border-r border-[#CBD5E1]">
-                      Matrícula
-                    </th>
-                    <th className="py-2.5 px-3 sticky left-32 bg-slate-100 z-20 min-w-56 border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.1)]">
-                      Estudiante
+                    <th className="py-2.5 px-4 sticky left-0 bg-slate-100 z-20 w-64 min-w-[240px] max-w-[260px] border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.12)] text-left">
+                      Estudiante / Matrícula
                     </th>
 
                     {/* Criteria Columns */}
@@ -760,11 +873,8 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
               {/* MODE 2: TASKS DETAIL FOR SELECTED PERIOD */}
               {typeof selectedPeriodFilter === 'number' && viewSubMode === 'tasks_detail' && (
                 <tr className="bg-slate-100 border-b border-[#CBD5E1] text-on-surface-variant text-[11px] uppercase tracking-wider font-semibold">
-                  <th className="py-2.5 px-3 sticky left-0 bg-slate-100 z-20 w-32 border-r border-[#CBD5E1]">
-                    Matrícula
-                  </th>
-                  <th className="py-2.5 px-3 sticky left-32 bg-slate-100 z-20 min-w-56 border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.1)]">
-                    Estudiante
+                  <th className="py-2.5 px-4 sticky left-0 bg-slate-100 z-20 w-64 min-w-[240px] max-w-[260px] border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.12)] text-left">
+                    Estudiante / Matrícula
                   </th>
 
                   {visibleAssignments.length > 0 ? (
@@ -832,10 +942,7 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
               {selectedPeriodFilter === 'all' && (
                 <>
                   <tr className="bg-slate-200 border-b border-[#CBD5E1] text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
-                    <th className="py-2 px-3 sticky left-0 bg-slate-200 z-30 w-32 border-r border-[#CBD5E1] text-left">
-                      Matrícula
-                    </th>
-                    <th className="py-2 px-3 sticky left-32 bg-slate-200 z-30 min-w-56 border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.1)] text-left">
+                    <th className="py-2.5 px-4 sticky left-0 bg-slate-200 z-30 w-64 min-w-[240px] max-w-[260px] border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.12)] text-left">
                       Estudiante
                     </th>
                     <th colSpan={numPeriods} className="py-2 px-3 border-r border-[#CBD5E1] text-center bg-secondary/10 text-secondary">
@@ -847,11 +954,8 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
                   </tr>
 
                   <tr className="bg-slate-100 border-b border-[#CBD5E1] text-on-surface-variant text-[11px] uppercase tracking-wider font-semibold">
-                    <th className="py-2.5 px-3 sticky left-0 bg-slate-100 z-20 w-32 border-r border-[#CBD5E1]">
-                      Matrícula
-                    </th>
-                    <th className="py-2.5 px-3 sticky left-32 bg-slate-100 z-20 min-w-56 border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.1)]">
-                      Estudiante
+                    <th className="py-2.5 px-4 sticky left-0 bg-slate-100 z-20 w-64 min-w-[240px] max-w-[260px] border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.12)] text-left">
+                      Estudiante / Matrícula
                     </th>
 
                     {Array.from({ length: numPeriods }, (_, i) => i + 1).map((idx) => (
@@ -892,22 +996,24 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
 
                   return (
                     <tr key={student.id} className={`hover:bg-blue-50/40 transition-colors ${idx % 2 === 1 ? 'bg-slate-50/60' : 'bg-white'}`}>
-                      {/* Matrícula */}
-                      <td className={`py-2 px-3 sticky left-0 z-10 font-mono-numeric font-semibold text-xs text-on-surface border-r border-[#E2E8F0] ${idx % 2 === 1 ? 'bg-[#F8FAFC]' : 'bg-white'}`}>
-                        {student.matricula}
-                      </td>
-
-                      {/* Estudiante */}
-                      <td className={`py-2 px-3 sticky left-32 z-10 border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.08)] ${idx % 2 === 1 ? 'bg-[#F8FAFC]' : 'bg-white'}`}>
-                        <div className="flex items-center gap-2">
+                      {/* Estudiante con Matrícula (Única columna fija a la izquierda) */}
+                      <td className={`py-2 px-4 sticky left-0 z-10 w-64 min-w-[240px] max-w-[260px] border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.08)] ${idx % 2 === 1 ? 'bg-[#F8FAFC]' : 'bg-white'}`}>
+                        <div className="flex items-center gap-2.5">
                           {student.avatarUrl ? (
-                            <img src={student.avatarUrl} alt={student.name} className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-[#E2E8F0]" />
+                            <img src={student.avatarUrl} alt={student.name} className="w-7 h-7 rounded-full object-cover shrink-0 ring-1 ring-[#E2E8F0]" />
                           ) : (
-                            <div className="w-6 h-6 rounded-full bg-surface-container-high text-primary flex items-center justify-center font-mono-numeric text-[10px] font-bold shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-mono-numeric text-[11px] font-bold shrink-0">
                               {student.initials || student.name.substring(0, 2).toUpperCase()}
                             </div>
                           )}
-                          <span className="font-semibold text-xs text-on-surface truncate">{student.name}</span>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-xs text-on-surface truncate leading-tight" title={student.name}>
+                              {student.name}
+                            </span>
+                            <span className="font-mono-numeric text-[10px] text-slate-500 font-medium">
+                              {student.matricula || `ALU-${idx + 1}`}
+                            </span>
+                          </div>
                         </div>
                       </td>
 
@@ -998,22 +1104,24 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
 
                   return (
                     <tr key={student.id} className={`hover:bg-blue-50/40 transition-colors ${idx % 2 === 1 ? 'bg-slate-50/60' : 'bg-white'}`}>
-                      {/* Matrícula */}
-                      <td className={`py-2 px-3 sticky left-0 z-10 font-mono-numeric font-semibold text-xs text-on-surface border-r border-[#E2E8F0] ${idx % 2 === 1 ? 'bg-[#F8FAFC]' : 'bg-white'}`}>
-                        {student.matricula}
-                      </td>
-
-                      {/* Estudiante */}
-                      <td className={`py-2 px-3 sticky left-32 z-10 border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.08)] ${idx % 2 === 1 ? 'bg-[#F8FAFC]' : 'bg-white'}`}>
-                        <div className="flex items-center gap-2">
+                      {/* Estudiante con Matrícula (Única columna fija a la izquierda) */}
+                      <td className={`py-2 px-4 sticky left-0 z-10 w-64 min-w-[240px] max-w-[260px] border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.08)] ${idx % 2 === 1 ? 'bg-[#F8FAFC]' : 'bg-white'}`}>
+                        <div className="flex items-center gap-2.5">
                           {student.avatarUrl ? (
-                            <img src={student.avatarUrl} alt={student.name} className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-[#E2E8F0]" />
+                            <img src={student.avatarUrl} alt={student.name} className="w-7 h-7 rounded-full object-cover shrink-0 ring-1 ring-[#E2E8F0]" />
                           ) : (
-                            <div className="w-6 h-6 rounded-full bg-surface-container-high text-primary flex items-center justify-center font-mono-numeric text-[10px] font-bold shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-mono-numeric text-[11px] font-bold shrink-0">
                               {student.initials || student.name.substring(0, 2).toUpperCase()}
                             </div>
                           )}
-                          <span className="font-semibold text-xs text-on-surface truncate">{student.name}</span>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-xs text-on-surface truncate leading-tight" title={student.name}>
+                              {student.name}
+                            </span>
+                            <span className="font-mono-numeric text-[10px] text-slate-500 font-medium">
+                              {student.matricula || `ALU-${idx + 1}`}
+                            </span>
+                          </div>
                         </div>
                       </td>
 
@@ -1079,22 +1187,24 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
                 // 3. RENDER ALL PERIODS CONSOLIDATED
                 return (
                   <tr key={student.id} className={`hover:bg-blue-50/40 transition-colors ${idx % 2 === 1 ? 'bg-slate-50/60' : 'bg-white'}`}>
-                    {/* Matrícula */}
-                    <td className={`py-2 px-3 sticky left-0 z-10 font-mono-numeric font-semibold text-xs text-on-surface border-r border-[#E2E8F0] ${idx % 2 === 1 ? 'bg-[#F8FAFC]' : 'bg-white'}`}>
-                      {student.matricula}
-                    </td>
-
-                    {/* Estudiante */}
-                    <td className={`py-2 px-3 sticky left-32 z-10 border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.08)] ${idx % 2 === 1 ? 'bg-[#F8FAFC]' : 'bg-white'}`}>
-                      <div className="flex items-center gap-2">
+                    {/* Estudiante con Matrícula (Única columna fija a la izquierda) */}
+                    <td className={`py-2 px-4 sticky left-0 z-10 w-64 min-w-[240px] max-w-[260px] border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.08)] ${idx % 2 === 1 ? 'bg-[#F8FAFC]' : 'bg-white'}`}>
+                      <div className="flex items-center gap-2.5">
                         {student.avatarUrl ? (
-                          <img src={student.avatarUrl} alt={student.name} className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-[#E2E8F0]" />
+                          <img src={student.avatarUrl} alt={student.name} className="w-7 h-7 rounded-full object-cover shrink-0 ring-1 ring-[#E2E8F0]" />
                         ) : (
-                          <div className="w-6 h-6 rounded-full bg-surface-container-high text-primary flex items-center justify-center font-mono-numeric text-[10px] font-bold shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-mono-numeric text-[11px] font-bold shrink-0">
                             {student.initials || student.name.substring(0, 2).toUpperCase()}
                           </div>
                         )}
-                        <span className="font-semibold text-xs text-on-surface truncate">{student.name}</span>
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-bold text-xs text-on-surface truncate leading-tight" title={student.name}>
+                            {student.name}
+                          </span>
+                          <span className="font-mono-numeric text-[10px] text-slate-500 font-medium">
+                            {student.matricula || `ALU-${idx + 1}`}
+                          </span>
+                        </div>
                       </div>
                     </td>
 
@@ -1380,6 +1490,49 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
               >
                 <span className="material-symbols-outlined text-sm">delete</span>
                 <span>Sí, Limpiar Corte</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Confirmación para Vaciar Todas las Actividades de la Nube */}
+      {showWipeModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-rose-300 p-6 w-full max-w-md animate-fadeIn">
+            <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center mb-4">
+              <span className="material-symbols-outlined text-3xl">delete_sweep</span>
+            </div>
+            <h3 className="font-extrabold text-lg text-slate-900">
+              ¿Vaciar todas las actividades de {currentGroup.name}?
+            </h3>
+            <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+              Esta acción eliminará de forma inmediata y permanente las <strong>{groupAssignments.length} actividades</strong> registradas y sus calificaciones asociadas en la base de datos de la nube (Firestore).
+            </p>
+            <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-[11px] text-emerald-900 mt-3 flex items-start gap-2">
+              <span className="material-symbols-outlined text-sm text-emerald-700 shrink-0 mt-0.5">check_circle</span>
+              <span>
+                <strong>Tus alumnos y grupo quedan intactos:</strong> La lista de estudiantes y la configuración de ponderaciones se conservan al 100%, dejando el cuaderno listo en blanco para registrar nuevas tareas o criterios.
+              </span>
+            </div>
+
+            <div className="flex justify-end gap-2.5 mt-6">
+              <button
+                type="button"
+                disabled={isWiping}
+                onClick={() => setShowWipeModal(false)}
+                className="px-4 py-2 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl cursor-pointer transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isWiping}
+                onClick={handleExecuteWipeGroupAssignments}
+                className="px-5 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-md cursor-pointer flex items-center gap-1.5 transition-all disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-sm">{isWiping ? 'progress_activity' : 'delete_forever'}</span>
+                <span>{isWiping ? 'Eliminando en la nube...' : 'Sí, Vaciar Todo de la Nube'}</span>
               </button>
             </div>
           </div>
