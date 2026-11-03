@@ -669,27 +669,30 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
               {selectedPeriodView === 'all' ? (
                 <>
                   {/* Top grouping row - Consolidated */}
-                  <tr className="bg-surface-container-high/40 border-b border-[#CBD5E1] text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
-                    <th colSpan={2} className="py-2 px-3 border-r border-[#CBD5E1] text-left">
-                      Datos del Alumno
+                  <tr className="bg-slate-200 border-b border-[#CBD5E1] text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
+                    <th className="py-2 px-3 sticky left-0 bg-slate-200 z-30 w-28 border-r border-[#CBD5E1] text-left">
+                      Matrícula
                     </th>
-                    <th colSpan={numPeriods} className="py-2 px-3 border-r border-[#CBD5E1] text-center bg-secondary/5 text-secondary">
+                    <th className="py-2 px-3 sticky left-28 bg-slate-200 z-30 min-w-56 border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.1)] text-left">
+                      Estudiante
+                    </th>
+                    <th colSpan={numPeriods} className="py-2 px-3 border-r border-[#CBD5E1] text-center bg-secondary/10 text-secondary">
                       Cortes Evaluativos ({structure.toUpperCase()})
                     </th>
-                    <th colSpan={6} className="py-2 px-3 border-r border-[#CBD5E1] text-center bg-primary/5 text-primary">
+                    <th colSpan={6} className="py-2 px-3 border-r border-[#CBD5E1] text-center bg-primary/10 text-primary">
                       Desglose Acumulado por Criterios de Evaluación (6 Criterios)
                     </th>
-                    <th colSpan={3} className="py-2 px-3 text-center bg-surface-container-low">
+                    <th colSpan={3} className="py-2 px-3 text-center bg-slate-100">
                       Dictamen Final
                     </th>
                   </tr>
 
                   {/* Sub headers - Consolidated */}
-                  <tr className="bg-surface-container-high/80 border-b border-[#CBD5E1] text-on-surface-variant text-[11px] uppercase tracking-wider font-semibold">
-                    <th className="py-2 px-3 sticky left-0 bg-surface-container-high/95 z-20 w-28 border-r border-[#CBD5E1]">
+                  <tr className="bg-slate-100 border-b border-[#CBD5E1] text-on-surface-variant text-[11px] uppercase tracking-wider font-semibold">
+                    <th className="py-2 px-3 sticky left-0 bg-slate-100 z-20 w-28 border-r border-[#CBD5E1]">
                       Matrícula
                     </th>
-                    <th className="py-2 px-3 sticky left-28 bg-surface-container-high/95 z-20 min-w-56 border-r border-[#CBD5E1]">
+                    <th className="py-2 px-3 sticky left-28 bg-slate-100 z-20 min-w-56 border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.1)]">
                       Estudiante
                     </th>
 
@@ -746,24 +749,27 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
               ) : (
                 <>
                   {/* Top grouping row - Period Specific */}
-                  <tr className="bg-surface-container-high/40 border-b border-[#CBD5E1] text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
-                    <th colSpan={2} className="py-2 px-3 border-r border-[#CBD5E1] text-left">
-                      Datos del Alumno
+                  <tr className="bg-slate-200 border-b border-[#CBD5E1] text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
+                    <th className="py-2 px-3 sticky left-0 bg-slate-200 z-30 w-28 border-r border-[#CBD5E1] text-left">
+                      Matrícula
+                    </th>
+                    <th className="py-2 px-3 sticky left-28 bg-slate-200 z-30 min-w-56 border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.1)] text-left">
+                      Estudiante
                     </th>
                     <th colSpan={6} className="py-2 px-3 border-r border-[#CBD5E1] text-center bg-secondary/10 text-secondary">
                       Evaluación de Criterios del {getPeriodName(selectedPeriodView)}
                     </th>
-                    <th colSpan={3} className="py-2 px-3 text-center bg-surface-container-low">
+                    <th colSpan={3} className="py-2 px-3 text-center bg-slate-100">
                       Resultado del {getPeriodName(selectedPeriodView)}
                     </th>
                   </tr>
 
                   {/* Sub headers - Period Specific */}
-                  <tr className="bg-surface-container-high/80 border-b border-[#CBD5E1] text-on-surface-variant text-[11px] uppercase tracking-wider font-semibold">
-                    <th className="py-2 px-3 sticky left-0 bg-surface-container-high/95 z-20 w-28 border-r border-[#CBD5E1]">
+                  <tr className="bg-slate-100 border-b border-[#CBD5E1] text-on-surface-variant text-[11px] uppercase tracking-wider font-semibold">
+                    <th className="py-2 px-3 sticky left-0 bg-slate-100 z-20 w-28 border-r border-[#CBD5E1]">
                       Matrícula
                     </th>
-                    <th className="py-2 px-3 sticky left-28 bg-surface-container-high/95 z-20 min-w-56 border-r border-[#CBD5E1]">
+                    <th className="py-2 px-3 sticky left-28 bg-slate-100 z-20 min-w-56 border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.1)]">
                       Estudiante
                     </th>
 
@@ -828,17 +834,17 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
                     return (
                       <tr
                         key={student.id}
-                        className={`hover:bg-surface-container-low/50 transition-colors ${
-                          idx % 2 === 1 ? 'bg-surface-container-low/20' : ''
+                        className={`hover:bg-blue-50/40 transition-colors ${
+                          idx % 2 === 1 ? 'bg-slate-50/60' : 'bg-white'
                         }`}
                       >
                         {/* Matrícula */}
-                        <td className="py-2.5 px-3 sticky left-0 bg-surface-container-lowest z-10 font-mono-numeric font-semibold text-xs text-on-surface border-r border-[#E2E8F0]">
+                        <td className={`py-2.5 px-3 sticky left-0 z-10 font-mono-numeric font-semibold text-xs text-on-surface border-r border-[#E2E8F0] ${idx % 2 === 1 ? 'bg-[#F8FAFC]' : 'bg-white'}`}>
                           {student.matricula}
                         </td>
 
                         {/* Estudiante */}
-                        <td className="py-2.5 px-3 sticky left-28 bg-surface-container-lowest z-10 border-r border-[#E2E8F0]">
+                        <td className={`py-2.5 px-3 sticky left-28 z-10 border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.08)] ${idx % 2 === 1 ? 'bg-[#F8FAFC]' : 'bg-white'}`}>
                           <div className="flex items-center gap-2.5">
                             {student.avatarUrl ? (
                               <img
@@ -984,17 +990,17 @@ export const FinalGradesView: React.FC<FinalGradesViewProps> = ({
                   return (
                     <tr
                       key={student.id}
-                      className={`hover:bg-surface-container-low/50 transition-colors ${
-                        idx % 2 === 1 ? 'bg-surface-container-low/20' : ''
+                      className={`hover:bg-blue-50/40 transition-colors ${
+                        idx % 2 === 1 ? 'bg-slate-50/60' : 'bg-white'
                       }`}
                     >
                       {/* Matrícula */}
-                      <td className="py-2.5 px-3 sticky left-0 bg-surface-container-lowest z-10 font-mono-numeric font-semibold text-xs text-on-surface border-r border-[#E2E8F0]">
+                      <td className={`py-2.5 px-3 sticky left-0 z-10 font-mono-numeric font-semibold text-xs text-on-surface border-r border-[#E2E8F0] ${idx % 2 === 1 ? 'bg-[#F8FAFC]' : 'bg-white'}`}>
                         {student.matricula}
                       </td>
 
                       {/* Estudiante */}
-                      <td className="py-2.5 px-3 sticky left-28 bg-surface-container-lowest z-10 border-r border-[#E2E8F0]">
+                      <td className={`py-2.5 px-3 sticky left-28 z-10 border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.08)] ${idx % 2 === 1 ? 'bg-[#F8FAFC]' : 'bg-white'}`}>
                         <div className="flex items-center gap-2.5">
                           {student.avatarUrl ? (
                             <img

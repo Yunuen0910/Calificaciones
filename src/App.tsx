@@ -46,6 +46,7 @@ import {
   clearDemoStudentsFromCloudGroups,
   deleteDemoTeachersFromCloud,
   syncAssignmentToCloud,
+  deleteAssignmentsFromCloud,
   syncScoresToCloud,
   seedInitialCloudDataIfEmpty,
 } from './firebase';
@@ -168,6 +169,17 @@ export default function App() {
 
   // 7. Shared assignments & scores state
   const [assignments, setAssignments] = useState<AssignmentGrade[]>(() => {
+    if (localStorage.getItem('aulagrade_clean_slate_active') === 'true') {
+      const saved = localStorage.getItem('aulagrade_assignments_data');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error('Failed to parse saved assignments', e);
+        }
+      }
+      return [];
+    }
     const saved = localStorage.getItem('aulagrade_assignments_data');
     if (saved) {
       try {
@@ -180,6 +192,17 @@ export default function App() {
   });
 
   const [scores, setScores] = useState<Record<string, Record<string, number>>>(() => {
+    if (localStorage.getItem('aulagrade_clean_slate_active') === 'true') {
+      const saved = localStorage.getItem('aulagrade_scores_data');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error('Failed to parse saved scores', e);
+        }
+      }
+      return {};
+    }
     const saved = localStorage.getItem('aulagrade_scores_data');
     if (saved) {
       try {
@@ -610,7 +633,20 @@ export default function App() {
   ) => {
     setAssignments((prev) => {
       const next = typeof action === 'function' ? action(prev) : action;
-      next.forEach((a) => syncAssignmentToCloud(a));
+      // Identify deleted assignments (in prev but not in next)
+      const nextIds = new Set(next.map((a) => a.id));
+      const removed = prev.filter((a) => !nextIds.has(a.id));
+      if (removed.length > 0) {
+        deleteAssignmentsFromCloud(removed.map((a) => a.id));
+      }
+      // Only sync assignments that are newly added or actually changed
+      const prevMap = new Map(prev.map((a) => [a.id, a]));
+      next.forEach((a) => {
+        const prevA = prevMap.get(a.id);
+        if (!prevA || JSON.stringify(prevA) !== JSON.stringify(a)) {
+          syncAssignmentToCloud(a);
+        }
+      });
       return next;
     });
   };
@@ -629,6 +665,10 @@ export default function App() {
 
   const handleDeleteGroup = (groupId: string) => {
     setGroups((prev) => prev.filter((g) => g.id !== groupId));
+    const toRemove = assignments.filter((a) => a.groupId === groupId);
+    if (toRemove.length > 0) {
+      deleteAssignmentsFromCloud(toRemove.map((a) => a.id));
+    }
     setAssignments((prev) => prev.filter((a) => a.groupId !== groupId));
     setScores((prev) => {
       const next = { ...prev };

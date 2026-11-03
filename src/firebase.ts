@@ -277,6 +277,23 @@ export async function deleteAssignmentFromCloud(assignmentId: string) {
   }
 }
 
+export async function deleteAssignmentsFromCloud(assignmentIds: string[]) {
+  if (!assignmentIds || assignmentIds.length === 0) return;
+  try {
+    const chunkSize = 400;
+    for (let i = 0; i < assignmentIds.length; i += chunkSize) {
+      const chunk = assignmentIds.slice(i, i + chunkSize);
+      const batch = writeBatch(db);
+      chunk.forEach((id) => {
+        batch.delete(doc(db, 'assignments', id));
+      });
+      await batch.commit();
+    }
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, `assignments/batch-delete`);
+  }
+}
+
 export async function syncAssignmentToCloud(assignment: AssignmentGrade) {
   try {
     await setDoc(doc(db, 'assignments', assignment.id), assignment);

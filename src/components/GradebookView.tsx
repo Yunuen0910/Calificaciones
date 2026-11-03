@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { Group, AssignmentGrade } from '../types';
 import { INITIAL_ASSIGNMENTS, INITIAL_STUDENT_SCORES } from '../data/mockData';
+import { deleteAssignmentFromCloud, deleteAssignmentsFromCloud } from '../firebase';
 
 interface GradebookViewProps {
   groups: Group[];
@@ -32,7 +33,7 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
 }) => {
   const currentGroup = groups.find((g) => g.id === selectedGroupId) || groups[0];
 
-  const [internalAssignments, setInternalAssignments] = useState<AssignmentGrade[]>(INITIAL_ASSIGNMENTS);
+  const [internalAssignments, setInternalAssignments] = useState<AssignmentGrade[]>([]);
   const [internalScores, setInternalScores] = useState<Record<string, Record<string, number>>>(INITIAL_STUDENT_SCORES);
 
   const assignments = externalAssignments ?? internalAssignments;
@@ -225,6 +226,7 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
   const handleConfirmDelete = () => {
     if (!assignmentToDelete) return;
     const asgId = assignmentToDelete.id;
+    deleteAssignmentFromCloud(asgId);
     setAssignments(prev => prev.filter(a => a.id !== asgId));
     setScores(prev => {
       const next = { ...prev };
@@ -251,14 +253,16 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
   // Clear all preset assignments for currentGroup (start clean)
   const handleClearGroupAssignments = () => {
     if (window.confirm(`¿Deseas eliminar todas las ${groupAssignments.length} actividades registradas de ${currentGroup.name}?\n\nEsta acción borrará las tareas y sus notas asociadas para que puedas comenzar completamente en blanco.`)) {
-      const asgIdsToRemove = new Set(groupAssignments.map(a => a.id));
-      setAssignments(prev => prev.filter(a => !asgIdsToRemove.has(a.id)));
+      const asgIdsToRemove = groupAssignments.map(a => a.id);
+      deleteAssignmentsFromCloud(asgIdsToRemove);
+      const asgIdsSet = new Set(asgIdsToRemove);
+      setAssignments(prev => prev.filter(a => !asgIdsSet.has(a.id)));
       setScores(prev => {
         const next = { ...prev };
         Object.keys(next).forEach(studentId => {
           if (next[studentId]) {
             const copy = { ...next[studentId] };
-            asgIdsToRemove.forEach(id => delete copy[id]);
+            asgIdsSet.forEach(id => delete copy[id]);
             next[studentId] = copy;
           }
         });
@@ -594,33 +598,36 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
             <thead>
               {/* Grouping header when viewing all periods */}
               {selectedPeriodFilter === 'all' && structure !== 'ciclo_unico' && (
-                <tr className="bg-surface-container-high/40 border-b border-[#CBD5E1] text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
-                  <th colSpan={2} className="py-2 px-3 border-r border-[#CBD5E1] text-left">
-                    Datos del Alumno
+                <tr className="bg-slate-200/90 border-b border-[#CBD5E1] text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
+                  <th className="py-2 px-3 sticky left-0 bg-slate-200 z-30 w-32 border-r border-[#CBD5E1] text-left">
+                    Matrícula
+                  </th>
+                  <th className="py-2 px-3 sticky left-32 bg-slate-200 z-30 min-w-56 border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.1)] text-left">
+                    Estudiante
                   </th>
                   {Array.from({ length: numPeriods }, (_, i) => i + 1).map((pIdx) => {
-                    const pAsgs = assignments.filter(a => a.periodIndex === pIdx);
+                    const pAsgs = groupAssignments.filter(a => a.periodIndex === pIdx);
                     return (
                       <th
                         key={pIdx}
                         colSpan={pAsgs.length + 1}
-                        className="py-2 px-3 text-center border-r-4 border-slate-300 bg-secondary/5 text-secondary"
+                        className="py-2 px-3 text-center border-r-4 border-slate-300 bg-secondary/10 text-secondary"
                       >
                         {getPeriodName(pIdx)} • {pAsgs.length} Actividades + Subtotal
                       </th>
                     );
                   })}
-                  <th colSpan={2} className="py-2 px-3 text-center bg-surface-container-low text-primary">
+                  <th colSpan={2} className="py-2 px-3 text-center bg-slate-100 text-primary">
                     Consolidado Final
                   </th>
                 </tr>
               )}
 
-              <tr className="bg-surface-container-high/60 border-b border-[#CBD5E1] text-on-surface-variant text-[11px] uppercase tracking-wider font-semibold">
-                <th className="py-2.5 px-3 sticky left-0 bg-surface-container-high/95 z-20 w-32 border-r border-[#CBD5E1]">
+              <tr className="bg-slate-100 border-b border-[#CBD5E1] text-on-surface-variant text-[11px] uppercase tracking-wider font-semibold">
+                <th className="py-2.5 px-3 sticky left-0 bg-slate-100 z-20 w-32 border-r border-[#CBD5E1]">
                   Matrícula
                 </th>
-                <th className="py-2.5 px-3 sticky left-32 bg-surface-container-high/95 z-20 min-w-56 border-r border-[#CBD5E1]">
+                <th className="py-2.5 px-3 sticky left-32 bg-slate-100 z-20 min-w-56 border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.1)]">
                   Estudiante
                 </th>
 
@@ -629,20 +636,20 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
                   <>
                     {visibleAssignments.length > 0 ? (
                       visibleAssignments.map((asg) => (
-                        <th key={asg.id} className="py-2.5 px-3 text-center min-w-36 border-r border-[#CBD5E1] bg-surface-container-high/40 hover:bg-surface-container-high transition-colors group/th">
-                          <div className="flex flex-col items-center">
+                        <th key={asg.id} className="py-2.5 px-3 text-center min-w-44 max-w-60 border-r border-[#CBD5E1] bg-slate-50 hover:bg-slate-100 transition-colors group/th">
+                          <div className="flex flex-col items-center gap-1.5">
                             <div className="flex items-center justify-between w-full gap-1">
-                              <span className="font-bold text-on-surface truncate text-xs flex-1 text-center" title={asg.name}>
-                                {asg.name}
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-900 border border-blue-200 shrink-0">
+                                {getPeriodName(asg.periodIndex || 1)}
                               </span>
-                              <div className="flex items-center gap-0.5 opacity-60 group-hover/th:opacity-100 transition-opacity">
+                              <div className="flex items-center gap-0.5 opacity-60 group-hover/th:opacity-100 transition-opacity shrink-0">
                                 <button
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setAssignmentToEdit({ ...asg });
                                   }}
-                                  className="p-1 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-800 cursor-pointer"
+                                  className="p-1 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-900 cursor-pointer"
                                   title={`Editar ${asg.name}`}
                                 >
                                   <span className="material-symbols-outlined text-[13px]">edit</span>
@@ -660,18 +667,16 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
                                 </button>
                               </div>
                             </div>
-                            <span className="text-[10px] text-secondary font-mono-numeric mt-0.5">
+                            <span className="font-bold text-slate-900 truncate text-xs w-full text-center px-1" title={asg.name}>
+                              {asg.name}
+                            </span>
+                            <span className="text-[10px] text-secondary font-mono-numeric font-semibold bg-white/90 px-2 py-0.5 rounded border border-slate-200">
                               {asg.category === 'homework' ? `Trabajos (${weights.homework}%)` :
                                asg.category === 'exams' ? `Examen (${weights.exams}%)` :
                                asg.category === 'attendance' ? `Asistencia (${weights.attendance}%)` :
                                asg.category === 'participation' ? `Part. (${weights.participation}%)` :
                                asg.category === 'projects' ? `Proyectos (${weights.projects || 0}%)` : `Auto. (${weights.selfEval}%)`}
                             </span>
-                            {asg.periodIndex && (
-                              <span className="text-[9px] text-outline font-medium mt-0.5">
-                                {getPeriodName(asg.periodIndex)}
-                              </span>
-                            )}
                           </div>
                         </th>
                       ))
@@ -696,20 +701,20 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
                       <React.Fragment key={pIdx}>
                         {pAsgs.length > 0 ? (
                           pAsgs.map((asg) => (
-                            <th key={asg.id} className="py-2.5 px-3 text-center min-w-36 border-r border-[#CBD5E1] bg-surface-container-high/40 hover:bg-surface-container-high transition-colors group/th">
-                              <div className="flex flex-col items-center">
+                            <th key={asg.id} className="py-2.5 px-3 text-center min-w-44 max-w-60 border-r border-[#CBD5E1] bg-slate-50 hover:bg-slate-100 transition-colors group/th">
+                              <div className="flex flex-col items-center gap-1.5">
                                 <div className="flex items-center justify-between w-full gap-1">
-                                  <span className="font-bold text-on-surface truncate text-xs flex-1 text-center" title={asg.name}>
-                                    {asg.name}
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-900 border border-blue-200 shrink-0">
+                                    {getPeriodName(pIdx)}
                                   </span>
-                                  <div className="flex items-center gap-0.5 opacity-60 group-hover/th:opacity-100 transition-opacity">
+                                  <div className="flex items-center gap-0.5 opacity-60 group-hover/th:opacity-100 transition-opacity shrink-0">
                                     <button
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setAssignmentToEdit({ ...asg });
                                       }}
-                                      className="p-1 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-800 cursor-pointer"
+                                      className="p-1 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-900 cursor-pointer"
                                       title={`Editar ${asg.name}`}
                                     >
                                       <span className="material-symbols-outlined text-[13px]">edit</span>
@@ -727,15 +732,15 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
                                     </button>
                                   </div>
                                 </div>
-                                <span className="text-[10px] text-secondary font-mono-numeric mt-0.5">
+                                <span className="font-bold text-slate-900 truncate text-xs w-full text-center px-1" title={asg.name}>
+                                  {asg.name}
+                                </span>
+                                <span className="text-[10px] text-secondary font-mono-numeric font-semibold bg-white/90 px-2 py-0.5 rounded border border-slate-200">
                                   {asg.category === 'homework' ? `Trabajos (${weights.homework}%)` :
                                    asg.category === 'exams' ? `Examen (${weights.exams}%)` :
                                    asg.category === 'attendance' ? `Asistencia (${weights.attendance}%)` :
                                    asg.category === 'participation' ? `Part. (${weights.participation}%)` :
                                    asg.category === 'projects' ? `Proyectos (${weights.projects || 0}%)` : `Auto. (${weights.selfEval}%)`}
-                                </span>
-                                <span className="text-[9px] text-outline font-medium mt-0.5">
-                                  {getPeriodName(pIdx)}
                                 </span>
                               </div>
                             </th>
@@ -773,14 +778,14 @@ export const GradebookView: React.FC<GradebookViewProps> = ({
                 const isAtRisk = !isPassing && finalAvg >= 6.0;
 
                 return (
-                  <tr key={student.id} className={`hover:bg-surface-container-low/50 transition-colors ${idx % 2 === 1 ? 'bg-surface-container-low/20' : ''}`}>
+                  <tr key={student.id} className={`hover:bg-blue-50/50 transition-colors ${idx % 2 === 1 ? 'bg-slate-50/60' : 'bg-white'}`}>
                     {/* Matrícula */}
-                    <td className="py-2 px-3 sticky left-0 bg-surface-container-lowest z-10 font-mono-numeric font-semibold text-xs text-on-surface border-r border-[#E2E8F0]">
+                    <td className={`py-2 px-3 sticky left-0 z-10 font-mono-numeric font-semibold text-xs text-on-surface border-r border-[#E2E8F0] ${idx % 2 === 1 ? 'bg-[#F8FAFC]' : 'bg-white'}`}>
                       {student.matricula}
                     </td>
 
                     {/* Estudiante */}
-                    <td className="py-2 px-3 sticky left-32 bg-surface-container-lowest z-10 border-r border-[#E2E8F0]">
+                    <td className={`py-2 px-3 sticky left-32 z-10 border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.08)] ${idx % 2 === 1 ? 'bg-[#F8FAFC]' : 'bg-white'}`}>
                       <div className="flex items-center gap-2">
                         {student.avatarUrl ? (
                           <img src={student.avatarUrl} alt={student.name} className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-[#E2E8F0]" />
